@@ -250,12 +250,7 @@ export const salaryApi = {
     return api.delete(`/user/salary/delete/${id}`)
   },
   
-  // 批量删除薪资条
-  deleteBatch: (ids: number[]): Promise<ApiResponse> => {
-    return api.delete('/user/salary/deleteBatch', { data: ids })
-  },
-  
-  // 修改薪资条
+  // 修改薪资条内容
   update: (data: Salary): Promise<ApiResponse> => {
     return api.put('/user/salary/revise', data)
   },

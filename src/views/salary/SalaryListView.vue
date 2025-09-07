@@ -9,25 +9,17 @@
               <el-icon><Plus /></el-icon>
               添加薪资
             </el-button>
-            <el-button type="danger" :disabled="!selectedRows.length" @click="handleBatchDelete">
-              <el-icon><Delete /></el-icon>
-              批量删除
-            </el-button>
           </div>
         </div>
       </template>
       
       <!-- 搜索表单 -->
       <el-form :model="searchForm" inline class="search-form">
+        <el-form-item label="薪资条ID">
+          <el-input v-model="searchForm.id" placeholder="请输入薪资条ID" clearable type="number" />
+        </el-form-item>
         <el-form-item label="员工姓名">
           <el-input v-model="searchForm.name" placeholder="请输入员工姓名" clearable />
-        </el-form-item>
-        <el-form-item label="结算周期">
-          <el-select v-model="searchForm.cycle" placeholder="请选择结算周期" clearable>
-            <el-option label="月结算" :value="1" />
-            <el-option label="日结算" :value="2" />
-            <el-option label="年结算" :value="3" />
-          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
@@ -45,11 +37,9 @@
       <el-table
         v-loading="loading"
         :data="tableData"
-        @selection-change="handleSelectionChange"
         stripe
         border
       >
-        <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="workerName" label="员工姓名" width="120" />
         <el-table-column prop="jobName" label="岗位" width="120" />
@@ -123,24 +113,24 @@
           <el-col :span="12">
             <el-form-item label="员工" prop="workerId">
               <el-select v-model="addForm.workerId" placeholder="请选择员工" @change="handleWorkerChange">
-                <el-option label="张三" :value="1" />
-                <el-option label="李四" :value="2" />
-                <el-option label="王五" :value="3" />
-                <el-option label="赵六" :value="4" />
-                <el-option label="钱七" :value="5" />
-                <el-option label="孙八" :value="6" />
+                <el-option 
+                  v-for="worker in Array.from(workerCache.values())" 
+                  :key="worker.id" 
+                  :label="worker.name" 
+                  :value="worker.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="岗位" prop="jobId">
               <el-select v-model="addForm.jobId" placeholder="请选择岗位" @change="handleJobChange">
-                <el-option label="高级工程师" :value="1" />
-                <el-option label="软件工程师" :value="2" />
-                <el-option label="产品经理" :value="3" />
-                <el-option label="市场专员" :value="4" />
-                <el-option label="人事专员" :value="5" />
-                <el-option label="财务专员" :value="6" />
+                <el-option 
+                  v-for="job in jobList" 
+                  :key="job.id" 
+                  :label="job.name" 
+                  :value="job.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -171,13 +161,13 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="基础工资" prop="salary">
+            <el-form-item label="基础工资">
               <el-input-number
-                v-model="addForm.salary"
+                :model-value="baseSalary"
                 :min="2000"
                 :max="60000"
                 :step="100"
-                placeholder="请输入基础工资"
+                placeholder="基础工资"
                 style="width: 100%"
                 disabled
               />
@@ -242,24 +232,24 @@
           <el-col :span="12">
             <el-form-item label="员工" prop="workerId">
               <el-select v-model="editForm.workerId" placeholder="请选择员工">
-                <el-option label="张三" :value="1" />
-                <el-option label="李四" :value="2" />
-                <el-option label="王五" :value="3" />
-                <el-option label="赵六" :value="4" />
-                <el-option label="钱七" :value="5" />
-                <el-option label="孙八" :value="6" />
+                <el-option 
+                  v-for="worker in Array.from(workerCache.values())" 
+                  :key="worker.id" 
+                  :label="worker.name" 
+                  :value="worker.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="岗位" prop="jobId">
               <el-select v-model="editForm.jobId" placeholder="请选择岗位">
-                <el-option label="高级工程师" :value="1" />
-                <el-option label="软件工程师" :value="2" />
-                <el-option label="产品经理" :value="3" />
-                <el-option label="市场专员" :value="4" />
-                <el-option label="人事专员" :value="5" />
-                <el-option label="财务专员" :value="6" />
+                <el-option 
+                  v-for="job in jobList" 
+                  :key="job.id" 
+                  :label="job.name" 
+                  :value="job.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -292,7 +282,7 @@
           <el-col :span="12">
             <el-form-item label="基础工资">
               <el-input-number
-                v-model="editForm.salary"
+                :model-value="editBaseSalary"
                 :min="2000"
                 :max="60000"
                 :step="100"
@@ -315,6 +305,21 @@
             </el-form-item>
           </el-col>
         </el-row>
+        
+        <el-form-item label="实际薪资">
+          <el-input-number
+            :model-value="editActualSalary"
+            :min="2000"
+            :max="60000"
+            :step="100"
+            placeholder="实际薪资"
+            style="width: 100%"
+            disabled
+          />
+          <div class="form-tip">
+            实际薪资 = 基础工资 + 薪资调整
+          </div>
+        </el-form-item>
       </el-form>
       
       <template #footer>
@@ -332,16 +337,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { salaryApi } from '@/api'
-import type { Salary, SalaryQueryParams } from '@/types'
+import { salaryApi, jobApi, workerApi } from '@/api'
+import type { Salary, SalaryQueryParams, Job, Worker } from '@/types'
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
-const selectedRows = ref<any[]>([])
+const jobList = ref<Job[]>([])
+const workerCache = ref<Map<number, Worker>>(new Map())
 
 const searchForm = reactive({
-  name: '',
-  cycle: undefined as number | undefined
+  id: undefined as number | undefined,
+  name: ''
 })
 
 const pagination = reactive({
@@ -381,6 +387,17 @@ const baseSalary = ref(5000)
 
 const actualSalary = computed(() => {
   return baseSalary.value + (addForm.salaryOffset || 0)
+})
+
+// 编辑时的基础工资
+const editBaseSalary = computed(() => {
+  const job = jobList.value.find(j => j.id === editForm.jobId)
+  return job?.salary || 0
+})
+
+// 编辑时的实际薪资
+const editActualSalary = computed(() => {
+  return editBaseSalary.value + (editForm.salaryOffset || 0)
 })
 
 const addFormRules: FormRules = {
@@ -438,20 +455,80 @@ const getCycleTagType = (cycle: number) => {
   return tagTypeMap[cycle] || ''
 }
 
+// 获取岗位列表
+const fetchJobList = async () => {
+  try {
+    const response = await jobApi.getAll()
+    if (response.code === 0) {
+      jobList.value = response.data
+    }
+  } catch (error) {
+    console.error('获取岗位列表失败:', error)
+  }
+}
+
+// 获取员工信息
+const fetchWorkerInfo = async (workerId: number): Promise<Worker | null> => {
+  if (workerCache.value.has(workerId)) {
+    return workerCache.value.get(workerId)!
+  }
+  
+  try {
+    const response = await workerApi.getExact(workerId)
+    if (response.code === 0) {
+      const worker = response.data
+      workerCache.value.set(workerId, worker)
+      return worker
+    }
+  } catch (error) {
+    console.error('获取员工信息失败:', error)
+  }
+  return null
+}
+
 // 获取薪资列表
 const fetchData = async () => {
   loading.value = true
   try {
-    const params: SalaryQueryParams = {
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize,
-      name: searchForm.name || undefined,
-      id: searchForm.cycle || undefined
+    let response
+    
+    // 如果有搜索条件，使用搜索接口
+    if (searchForm.id || searchForm.name) {
+      const params: SalaryQueryParams = {
+        pageNum: pagination.pageNum,
+        pageSize: pagination.pageSize,
+        id: searchForm.id,
+        name: searchForm.name || undefined
+      }
+      response = await salaryApi.getById(params)
+    } else {
+      // 否则使用分页查询接口
+      const params = {
+        pageNum: pagination.pageNum,
+        pageSize: pagination.pageSize
+      }
+      response = await salaryApi.getByPage(params)
     }
     
-    const response = await salaryApi.getByPage(params)
     if (response.code === 0) {
-      tableData.value = response.data.items
+      const salaryItems = response.data.items || response.data.list || []
+      
+      // 为每个薪资条添加岗位名称、员工姓名和基础薪资
+      const enrichedData = await Promise.all(
+        salaryItems.map(async (item: any) => {
+          const job = jobList.value.find(j => j.id === item.jobId)
+          const worker = await fetchWorkerInfo(item.workerId)
+          
+          return {
+            ...item,
+            jobName: job?.name || '未知岗位',
+            workerName: worker?.name || '未知员工',
+            baseSalary: job?.salary || 0 // 从岗位信息中获取基础薪资
+          }
+        })
+      )
+      
+      tableData.value = enrichedData
       pagination.total = response.data.total
     }
   } catch (error) {
@@ -504,8 +581,8 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   Object.assign(searchForm, {
-    name: '',
-    cycle: undefined
+    id: undefined,
+    name: ''
   })
   pagination.pageNum = 1
   fetchData()
@@ -520,15 +597,8 @@ const handleWorkerChange = (workerId: number) => {
 // 岗位变化
 const handleJobChange = (jobId: number) => {
   // 根据岗位获取基础工资
-  const salaryMap: Record<number, number> = {
-    1: 15000, // 高级工程师
-    2: 10000, // 软件工程师
-    3: 12000, // 产品经理
-    4: 8000,  // 市场专员
-    5: 7000,  // 人事专员
-    6: 7500   // 财务专员
-  }
-  baseSalary.value = salaryMap[jobId] || 5000
+  const job = jobList.value.find(j => j.id === jobId)
+  baseSalary.value = job?.salary || 5000
 }
 
 // 添加薪资提交
@@ -539,9 +609,13 @@ const handleAddSubmit = async () => {
     await addFormRef.value.validate()
     addLoading.value = true
     
+    // 根据接口文档，添加薪资时不需要传递salary字段，后端会自动计算
     const submitData = {
-      ...addForm,
-      salary: actualSalary.value
+      jobId: addForm.jobId,
+      workerId: addForm.workerId,
+      settlementTime: addForm.settlementTime || null, // 可以为null，后端会自动设置
+      cycle: addForm.cycle,
+      salaryOffset: addForm.salaryOffset
     }
     
     const response = await salaryApi.add(submitData)
@@ -591,7 +665,17 @@ const handleEditSubmit = async () => {
     await editFormRef.value.validate()
     editLoading.value = true
     
-    const response = await salaryApi.update(editForm)
+    // 根据接口文档，修改薪资时需要传递id字段
+    const submitData = {
+      id: editForm.id,
+      jobId: editForm.jobId,
+      workerId: editForm.workerId,
+      settlementTime: editForm.settlementTime,
+      cycle: editForm.cycle,
+      salaryOffset: editForm.salaryOffset
+    }
+    
+    const response = await salaryApi.update(submitData)
     if (response.code === 0) {
       ElMessage.success('修改薪资成功')
       showEditDialog.value = false
@@ -653,32 +737,6 @@ const handleDelete = async (row: any) => {
   }
 }
 
-// 批量删除
-const handleBatchDelete = async () => {
-  try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedRows.value.length} 条薪资记录吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    const ids = selectedRows.value.map(row => row.id)
-    console.log('删除的薪资记录IDs:', ids)
-    // 这里需要实现批量删除接口
-    ElMessage.success('批量删除成功')
-    fetchData()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
-    }
-  }
-}
-
-// 选择变化
-const handleSelectionChange = (selection: any[]) => {
-  selectedRows.value = selection
-}
 
 // 分页变化
 const handleSizeChange = (size: number) => {
@@ -692,8 +750,9 @@ const handleCurrentChange = (page: number) => {
   fetchData()
 }
 
-onMounted(() => {
-  fetchData()
+onMounted(async () => {
+  await fetchJobList()
+  await fetchData()
 })
 </script>
 

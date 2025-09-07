@@ -22,24 +22,24 @@
           <el-col :span="12">
             <el-form-item label="员工" prop="workerId">
               <el-select v-model="form.workerId" placeholder="请选择员工" @change="handleWorkerChange">
-                <el-option label="张三" :value="1" />
-                <el-option label="李四" :value="2" />
-                <el-option label="王五" :value="3" />
-                <el-option label="赵六" :value="4" />
-                <el-option label="钱七" :value="5" />
-                <el-option label="孙八" :value="6" />
+                <el-option 
+                  v-for="worker in workerList" 
+                  :key="worker.id" 
+                  :label="worker.name" 
+                  :value="worker.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="岗位" prop="jobId">
               <el-select v-model="form.jobId" placeholder="请选择岗位" @change="handleJobChange">
-                <el-option label="高级工程师" :value="1" />
-                <el-option label="软件工程师" :value="2" />
-                <el-option label="产品经理" :value="3" />
-                <el-option label="市场专员" :value="4" />
-                <el-option label="人事专员" :value="5" />
-                <el-option label="财务专员" :value="6" />
+                <el-option 
+                  v-for="job in jobList" 
+                  :key="job.id" 
+                  :label="job.name" 
+                  :value="job.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -70,13 +70,13 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="基础工资" prop="salary">
+            <el-form-item label="基础工资">
               <el-input-number
-                v-model="form.salary"
+                :model-value="baseSalary"
                 :min="2000"
                 :max="60000"
                 :step="100"
-                placeholder="请输入基础工资"
+                placeholder="基础工资"
                 style="width: 100%"
                 disabled
               />
@@ -125,15 +125,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { salaryApi } from '@/api'
-import type { Salary } from '@/types'
+import { salaryApi, jobApi, workerApi } from '@/api'
+import type { Salary, Job, Worker } from '@/types'
 
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const jobList = ref<Job[]>([])
+const workerList = ref<Worker[]>([])
 
 const form = reactive<Omit<Salary, 'id'>>({
   jobId: 1,
@@ -144,7 +146,11 @@ const form = reactive<Omit<Salary, 'id'>>({
   salary: 0
 })
 
-const baseSalary = ref(5000)
+// 基础工资计算属性，从岗位信息中获取
+const baseSalary = computed(() => {
+  const job = jobList.value.find(j => j.id === form.jobId)
+  return job?.salary || 0
+})
 
 const actualSalary = computed(() => {
   return baseSalary.value + (form.salaryOffset || 0)
@@ -174,18 +180,34 @@ const handleWorkerChange = (workerId: number) => {
   console.log('选择员工:', workerId)
 }
 
-// 岗位变化
-const handleJobChange = (jobId: number) => {
-  // 根据岗位获取基础工资
-  const salaryMap: Record<number, number> = {
-    1: 15000, // 高级工程师
-    2: 10000, // 软件工程师
-    3: 12000, // 产品经理
-    4: 8000,  // 市场专员
-    5: 7000,  // 人事专员
-    6: 7500   // 财务专员
+// 获取岗位列表
+const fetchJobList = async () => {
+  try {
+    const response = await jobApi.getAll()
+    if (response.code === 0) {
+      jobList.value = response.data
+    }
+  } catch (error) {
+    console.error('获取岗位列表失败:', error)
   }
-  baseSalary.value = salaryMap[jobId] || 5000
+}
+
+// 获取员工列表
+const fetchWorkerList = async () => {
+  try {
+    const response = await workerApi.getByPage({ pageNum: 1, pageSize: 1000 })
+    if (response.code === 0) {
+      workerList.value = response.data.items
+    }
+  } catch (error) {
+    console.error('获取员工列表失败:', error)
+  }
+}
+
+// 岗位变化处理（基础工资现在通过计算属性自动更新）
+const handleJobChange = (jobId: number) => {
+  // 基础工资现在通过计算属性自动从岗位信息中获取
+  console.log('选择岗位:', jobId)
 }
 
 const handleSubmit = async () => {
@@ -195,9 +217,13 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     loading.value = true
     
+    // 根据接口文档，添加薪资时不需要传递salary字段，后端会自动计算
     const submitData = {
-      ...form,
-      salary: actualSalary.value
+      jobId: form.jobId,
+      workerId: form.workerId,
+      settlementTime: form.settlementTime || null, // 可以为null，后端会自动设置
+      cycle: form.cycle,
+      salaryOffset: form.salaryOffset
     }
     
     const response = await salaryApi.add(submitData)
@@ -217,12 +243,17 @@ const handleSubmit = async () => {
 
 const handleReset = () => {
   formRef.value?.resetFields()
-  baseSalary.value = 5000
+  // baseSalary现在通过计算属性自动计算，无需手动重置
 }
 
 const handleBack = () => {
   router.push('/salary/list')
 }
+
+onMounted(async () => {
+  await fetchJobList()
+  await fetchWorkerList()
+})
 </script>
 
 <style scoped>
