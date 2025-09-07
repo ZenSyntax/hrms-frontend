@@ -19,7 +19,7 @@ export interface PageResponse<T = any> {
 export interface Worker {
   id: number
   name: string
-  gender: number // 0-女 1-男
+  gender: number // 1-男 2-女
   degree: number // 1-本科以上 2-本科 3-大专 4-高中 5-初中及以下
   birthday: string
   socialSecurity: number // 0-未缴 1-已缴
@@ -66,9 +66,11 @@ export interface Lesson {
 
 // 学员信息
 export interface Trainee {
-  id: number
-  lesId: number
-  workerId: number
+  id: number // 学员与课程的多对多关系表ID
+  name: string
+  dept: string
+  job: string
+  lesName: string
 }
 
 // 薪资信息
@@ -88,6 +90,7 @@ export interface User {
   name: string
   password: string
   worker?: number
+  role?: string // 用户角色：admin, leader, user
 }
 
 // 系统日志
@@ -153,8 +156,8 @@ export interface SalaryQueryParams extends PageParams {
 
 // 学员查询参数
 export interface TraineeQueryParams extends PageParams {
-  id: number // 课程id
-  name?: string
+  id?: number | null // 课程ID（精确匹配）
+  name?: string | null // 学员姓名（模糊搜索）
 }
 
 // 日志查询参数

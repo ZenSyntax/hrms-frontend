@@ -19,33 +19,24 @@
         :data="tableData"
         stripe
         border
+        style="width: 100%"
       >
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="用户名" width="150" />
-        <el-table-column prop="workerName" label="关联员工" width="150">
+        <el-table-column prop="id" label="ID" width="100" />
+        <el-table-column prop="name" label="用户名" min-width="200" />
+        <el-table-column prop="worker" label="关联员工ID" min-width="200">
           <template #default="{ row }">
-            {{ row.workerName || '未关联' }}
+            {{ row.worker || '未关联' }}
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column prop="lastLoginTime" label="最后登录" width="180" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-tag :type="row.status === '正常' ? 'success' : 'danger'">
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" size="small" @click="handleDelete(row)">
+            <el-button 
+              type="danger" 
+              size="small" 
+              @click="handleDelete(row)"
+              :disabled="row.name === 'admin' || row.name === 'leader'"
+            >
               删除
-            </el-button>
-            <el-button type="warning" size="small" @click="handleResetPassword(row)">
-              重置密码
             </el-button>
           </template>
         </el-table-column>
@@ -64,14 +55,56 @@
         />
       </div>
     </el-card>
+
+    <!-- 添加用户对话框 -->
+    <el-dialog
+      v-model="addDialogVisible"
+      title="添加用户"
+      width="500px"
+      @close="resetAddForm"
+    >
+      <el-form
+        ref="addFormRef"
+        :model="addForm"
+        :rules="addFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="用户名" prop="name">
+          <el-input v-model="addForm.name" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input 
+            v-model="addForm.password" 
+            type="password" 
+            placeholder="请输入密码" 
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="员工ID" prop="workerId">
+          <el-input 
+            v-model="addForm.workerId" 
+            type="number" 
+            placeholder="请输入员工ID" 
+          />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="addDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitAdd" :loading="addLoading">
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { userApi } from '@/api'
-import type { User } from '@/types'
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -81,6 +114,28 @@ const pagination = reactive({
   pageSize: 10,
   total: 0
 })
+
+// 添加用户相关
+const addDialogVisible = ref(false)
+const addLoading = ref(false)
+const addFormRef = ref<FormInstance>()
+const addForm = reactive({
+  name: '',
+  password: '',
+  workerId: ''
+})
+
+const addFormRules: FormRules = {
+  name: [
+    { required: true, message: '请输入用户名', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' }
+  ],
+  workerId: [
+    { required: true, message: '请输入员工ID', trigger: 'blur' }
+  ]
+}
 
 // 获取用户列表
 const fetchData = async () => {
@@ -95,37 +150,12 @@ const fetchData = async () => {
     if (response.code === 0) {
       tableData.value = response.data.items
       pagination.total = response.data.total
+    } else {
+      ElMessage.error(response.message || '获取用户列表失败')
     }
   } catch (error) {
     console.error('获取用户列表失败:', error)
-    // 使用模拟数据
-    tableData.value = [
-      {
-        id: 1,
-        name: 'admin',
-        workerName: '系统管理员',
-        createTime: '2024-01-01 10:00:00',
-        lastLoginTime: '2024-01-15 14:30:00',
-        status: '正常'
-      },
-      {
-        id: 2,
-        name: 'zhangsan',
-        workerName: '张三',
-        createTime: '2024-01-02 09:00:00',
-        lastLoginTime: '2024-01-15 16:20:00',
-        status: '正常'
-      },
-      {
-        id: 3,
-        name: 'lisi',
-        workerName: '李四',
-        createTime: '2024-01-03 11:00:00',
-        lastLoginTime: '2024-01-14 10:15:00',
-        status: '正常'
-      }
-    ]
-    pagination.total = tableData.value.length
+    ElMessage.error('获取用户列表失败')
   } finally {
     loading.value = false
   }
@@ -133,18 +163,55 @@ const fetchData = async () => {
 
 // 添加用户
 const handleAdd = () => {
-  // 这里可以打开添加用户的对话框
-  ElMessage.info('添加用户功能待实现')
+  addDialogVisible.value = true
 }
 
-// 编辑用户
-const handleEdit = (row: any) => {
-  // 这里可以打开编辑用户的对话框
-  ElMessage.info('编辑用户功能待实现')
+// 提交添加用户
+const submitAdd = async () => {
+  if (!addFormRef.value) return
+  
+  try {
+    await addFormRef.value.validate()
+    addLoading.value = true
+    
+    const response = await userApi.add({
+      name: addForm.name,
+      password: addForm.password,
+      worker: parseInt(addForm.workerId)
+    })
+    
+    if (response.code === 0) {
+      ElMessage.success('添加成功')
+      addDialogVisible.value = false
+      resetAddForm()
+      fetchData()
+    } else {
+      ElMessage.error(response.message || '添加失败')
+    }
+  } catch (error) {
+    console.error('添加用户失败:', error)
+    ElMessage.error('添加失败')
+  } finally {
+    addLoading.value = false
+  }
+}
+
+// 重置添加表单
+const resetAddForm = () => {
+  addForm.name = ''
+  addForm.password = ''
+  addForm.workerId = ''
+  addFormRef.value?.resetFields()
 }
 
 // 删除用户
 const handleDelete = async (row: any) => {
+  // 检查是否为admin或leader用户
+  if (row.name === 'admin' || row.name === 'leader') {
+    ElMessage.warning('admin和leader用户不可删除')
+    return
+  }
+  
   try {
     await ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
       confirmButtonText: '确定',
@@ -163,24 +230,6 @@ const handleDelete = async (row: any) => {
     if (error !== 'cancel') {
       console.error('删除用户失败:', error)
       ElMessage.error('删除失败')
-    }
-  }
-}
-
-// 重置密码
-const handleResetPassword = async (row: any) => {
-  try {
-    await ElMessageBox.confirm('确定要重置该用户的密码吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    ElMessage.success('密码重置成功，新密码为：88888888')
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('重置密码失败:', error)
-      ElMessage.error('重置密码失败')
     }
   }
 }
@@ -205,6 +254,8 @@ onMounted(() => {
 <style scoped>
 .user-list {
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-header {
@@ -222,5 +273,14 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+/* 确保表格容器占满宽度 */
+:deep(.el-card__body) {
+  padding: 20px;
+}
+
+:deep(.el-table) {
+  width: 100% !important;
 }
 </style>

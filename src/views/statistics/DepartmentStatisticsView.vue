@@ -204,6 +204,7 @@ onMounted(async () => {
 const loadData = async () => {
   try {
     const departmentStats = await statisticsApi.getDepartmentStatistics()
+    console.log('部门统计数据:', departmentStats)
     // 更新数据
   } catch (error) {
     console.error('加载部门统计数据失败:', error)

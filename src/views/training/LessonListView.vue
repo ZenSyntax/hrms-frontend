@@ -15,6 +15,9 @@
       
       <!-- 搜索表单 -->
       <el-form :model="searchForm" inline class="search-form">
+        <el-form-item label="课程ID">
+          <el-input v-model="searchForm.id" placeholder="请输入课程ID" clearable />
+        </el-form-item>
         <el-form-item label="课程名称">
           <el-input v-model="searchForm.name" placeholder="请输入课程名称" clearable />
         </el-form-item>
@@ -51,9 +54,6 @@
             <el-button type="danger" size="small" @click="handleDelete(row)">
               删除
             </el-button>
-            <el-button type="success" size="small" @click="handleManageTrainees(row)">
-              学员管理
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -71,22 +71,207 @@
         />
       </div>
     </el-card>
+    
+    <!-- 添加课程悬浮窗 -->
+    <el-dialog
+      v-model="showAddDialog"
+      title="添加课程"
+      width="600px"
+      :close-on-click-modal="true"
+      @close="handleAddDialogClose"
+    >
+      <el-form
+        ref="addFormRef"
+        :model="addForm"
+        :rules="addFormRules"
+        label-width="120px"
+        class="add-form"
+      >
+        <el-form-item label="课程名称" prop="name">
+          <el-input v-model="addForm.name" placeholder="请输入课程名称" />
+        </el-form-item>
+        
+        <el-form-item label="开始时间" prop="schedule">
+          <el-date-picker
+            v-model="addForm.schedule"
+            type="date"
+            placeholder="请选择开始时间"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        
+        <el-form-item label="持续天数" prop="timePlan">
+          <el-input-number
+            v-model="addForm.timePlan"
+            :min="1"
+            :max="30"
+            placeholder="请输入持续天数"
+            style="width: 100%"
+          />
+        </el-form-item>
+        
+        <el-form-item label="培训地点" prop="address">
+          <el-input v-model="addForm.address" placeholder="请输入培训地点" />
+        </el-form-item>
+        
+        <el-form-item label="课程介绍" prop="info">
+          <el-input
+            v-model="addForm.info"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入课程介绍"
+          />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showAddDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleAddSubmit" :loading="addLoading">
+            提交
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+    
+    <!-- 编辑课程悬浮窗 -->
+    <el-dialog
+      v-model="showEditDialog"
+      title="编辑课程"
+      width="600px"
+      :close-on-click-modal="true"
+      @close="handleEditDialogClose"
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editFormRules"
+        label-width="120px"
+        class="edit-form"
+      >
+        <el-form-item label="课程名称" prop="name">
+          <el-input v-model="editForm.name" placeholder="请输入课程名称" />
+        </el-form-item>
+        
+        <el-form-item label="开始时间" prop="schedule">
+          <el-date-picker
+            v-model="editForm.schedule"
+            type="date"
+            placeholder="请选择开始时间"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        
+        <el-form-item label="持续天数" prop="timePlan">
+          <el-input-number
+            v-model="editForm.timePlan"
+            :min="1"
+            :max="30"
+            placeholder="请输入持续天数"
+            style="width: 100%"
+          />
+        </el-form-item>
+        
+        <el-form-item label="培训地点" prop="address">
+          <el-input v-model="editForm.address" placeholder="请输入培训地点" />
+        </el-form-item>
+        
+        <el-form-item label="课程介绍" prop="info">
+          <el-input
+            v-model="editForm.info"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入课程介绍"
+          />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showEditDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleEditSubmit" :loading="editLoading">
+            提交
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { lessonApi } from '@/api'
 import type { Lesson, LessonQueryParams } from '@/types'
-
-const router = useRouter()
 
 const loading = ref(false)
 const tableData = ref<Lesson[]>([])
 
+// 悬浮窗相关状态
+const showAddDialog = ref(false)
+const addLoading = ref(false)
+const addFormRef = ref<FormInstance>()
+const showEditDialog = ref(false)
+const editLoading = ref(false)
+const editFormRef = ref<FormInstance>()
+
+const addForm = reactive<Omit<Lesson, 'id'>>({
+  name: '',
+  schedule: '',
+  timePlan: 1,
+  address: '',
+  info: ''
+})
+
+const editForm = reactive<Lesson>({
+  id: 0,
+  name: '',
+  schedule: '',
+  timePlan: 1,
+  address: '',
+  info: ''
+})
+
+const addFormRules: FormRules = {
+  name: [
+    { required: true, message: '请输入课程名称', trigger: 'blur' }
+  ],
+  schedule: [
+    { required: true, message: '请输入开始时间', trigger: 'blur' }
+  ],
+  timePlan: [
+    { required: true, message: '请输入持续天数', trigger: 'blur' }
+  ],
+  address: [
+    { required: true, message: '请输入培训地点', trigger: 'blur' }
+  ],
+  info: [
+    { required: true, message: '请输入课程介绍', trigger: 'blur' }
+  ]
+}
+
+const editFormRules: FormRules = {
+  name: [
+    { required: true, message: '请输入课程名称', trigger: 'blur' }
+  ],
+  schedule: [
+    { required: true, message: '请输入开始时间', trigger: 'blur' }
+  ],
+  timePlan: [
+    { required: true, message: '请输入持续天数', trigger: 'blur' }
+  ],
+  address: [
+    { required: true, message: '请输入培训地点', trigger: 'blur' }
+  ],
+  info: [
+    { required: true, message: '请输入课程介绍', trigger: 'blur' }
+  ]
+}
+
 const searchForm = reactive({
+  id: '',
   name: ''
 })
 
@@ -103,10 +288,11 @@ const fetchData = async () => {
     const params: LessonQueryParams = {
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
+      id: searchForm.id ? Number(searchForm.id) : undefined,
       name: searchForm.name || undefined
     }
     
-    const response = await lessonApi.getByPage(params)
+    const response = await lessonApi.getById(params)
     if (response.code === 0) {
       tableData.value = response.data.items
       pagination.total = response.data.total
@@ -155,6 +341,7 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   Object.assign(searchForm, {
+    id: '',
     name: ''
   })
   pagination.pageNum = 1
@@ -163,12 +350,39 @@ const handleReset = () => {
 
 // 添加课程
 const handleAdd = () => {
-  router.push('/training/lesson/add')
+  showAddDialog.value = true
+}
+
+// 添加课程提交
+const handleAddSubmit = async () => {
+  if (!addFormRef.value) return
+  
+  try {
+    await addFormRef.value.validate()
+    addLoading.value = true
+    
+    const response = await lessonApi.add(addForm)
+    if (response.code === 0) {
+      ElMessage.success('添加课程成功')
+      showAddDialog.value = false
+      resetAddForm()
+      fetchData()
+    } else {
+      ElMessage.error(response.message || '添加课程失败')
+    }
+  } catch (error) {
+    console.error('添加课程失败:', error)
+    ElMessage.error('添加课程失败')
+  } finally {
+    addLoading.value = false
+  }
 }
 
 // 编辑课程
 const handleEdit = (row: Lesson) => {
-  router.push(`/training/lesson/edit/${row.id}`)
+  // 填充编辑表单数据
+  Object.assign(editForm, row)
+  showEditDialog.value = true
 }
 
 // 删除课程
@@ -195,9 +409,65 @@ const handleDelete = async (row: Lesson) => {
   }
 }
 
-// 学员管理
-const handleManageTrainees = (row: Lesson) => {
-  router.push(`/training/trainee?lessonId=${row.id}`)
+
+// 编辑课程提交
+const handleEditSubmit = async () => {
+  if (!editFormRef.value) return
+  
+  try {
+    await editFormRef.value.validate()
+    editLoading.value = true
+    
+    const response = await lessonApi.update(editForm)
+    if (response.code === 0) {
+      ElMessage.success('修改课程成功')
+      showEditDialog.value = false
+      resetEditForm()
+      fetchData()
+    } else {
+      ElMessage.error(response.message || '修改课程失败')
+    }
+  } catch (error) {
+    console.error('修改课程失败:', error)
+    ElMessage.error('修改课程失败')
+  } finally {
+    editLoading.value = false
+  }
+}
+
+// 重置添加表单
+const resetAddForm = () => {
+  Object.assign(addForm, {
+    name: '',
+    schedule: '',
+    timePlan: 1,
+    address: '',
+    info: ''
+  })
+  addFormRef.value?.resetFields()
+}
+
+// 重置编辑表单
+const resetEditForm = () => {
+  Object.assign(editForm, {
+    id: 0,
+    name: '',
+    schedule: '',
+    timePlan: 1,
+    address: '',
+    info: ''
+  })
+  editFormRef.value?.resetFields()
+}
+
+// 添加悬浮窗关闭处理
+const handleAddDialogClose = () => {
+  resetAddForm()
+}
+
+// 编辑悬浮窗关闭处理
+const handleEditDialogClose = () => {
+  resetEditForm()
 }
 
 // 分页变化
@@ -241,5 +511,13 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+.edit-form {
+  max-width: 100%;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>

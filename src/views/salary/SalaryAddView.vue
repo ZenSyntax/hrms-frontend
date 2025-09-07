@@ -70,9 +70,9 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="基础工资" prop="baseSalary">
+            <el-form-item label="基础工资" prop="salary">
               <el-input-number
-                v-model="form.baseSalary"
+                v-model="form.salary"
                 :min="2000"
                 :max="60000"
                 :step="100"
@@ -135,12 +135,13 @@ const router = useRouter()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 
-const form = reactive<Omit<Salary, 'id' | 'salary'>>({
+const form = reactive<Omit<Salary, 'id'>>({
   jobId: 1,
   workerId: 1,
   settlementTime: '',
   cycle: 1,
-  salaryOffset: 0
+  salaryOffset: 0,
+  salary: 0
 })
 
 const baseSalary = ref(5000)

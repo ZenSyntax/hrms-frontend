@@ -18,17 +18,12 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/dashboard'
+          redirect: '/home'
         },
         {
           path: 'home',
           name: 'home',
           component: () => import('@/views/HomeView.vue')
-        },
-        {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: () => import('@/views/DashboardView.vue')
         },
         // 员工管理
         {
@@ -121,20 +116,39 @@ const router = createRouter({
           path: 'statistics/department',
           name: 'statistics-department',
           component: () => import('@/views/statistics/DepartmentStatisticsView.vue')
+        },
+        // 禁止访问页面
+        {
+          path: 'forbidden',
+          name: 'forbidden',
+          component: () => import('@/views/ForbiddenView.vue')
         }
       ]
     }
   ]
 })
 
+// 需要高级管理权限的路由
+const adminRoutes = [
+  '/department/list',
+  '/system/payment',
+  '/system/user',
+  '/system/log'
+]
+
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
   
   if (to.meta.requiresAuth === false) {
     next()
   } else if (authStore.isLoggedIn) {
-    next()
+    // 检查是否需要高级管理权限
+    if (adminRoutes.includes(to.path) && !authStore.hasAdminAccess) {
+      next('/forbidden')
+    } else {
+      next()
+    }
   } else {
     next('/login')
   }

@@ -110,10 +110,7 @@ import { statisticsApi } from '@/api/statistics'
 import { 
   User, 
   Briefcase, 
-  OfficeBuilding, 
-  Money,
-  TrendCharts,
-  Bottom
+  OfficeBuilding
 } from '@element-plus/icons-vue'
 
 const employeeGrowthChartRef = ref<HTMLElement>()

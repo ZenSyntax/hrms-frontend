@@ -95,7 +95,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { logApi } from '@/api'
 import type { Log } from '@/types'
 

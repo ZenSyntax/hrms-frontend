@@ -5,7 +5,7 @@
       :width="sidebarCollapsed ? '64px' : '200px'" 
       :class="['sidebar', { 'show': !sidebarCollapsed && isMobile }]"
     >
-      <div class="logo">
+      <div class="logo" @click="goToHome">
         <h2 v-if="!sidebarCollapsed">HRMS</h2>
         <h2 v-else>H</h2>
       </div>
@@ -16,75 +16,75 @@
         router
         class="sidebar-menu"
       >
-        <el-menu-item index="/dashboard">
-          <el-icon><House /></el-icon>
-          <span>仪表盘</span>
+        <el-sub-menu index="home">
+          <template #title>
+            <el-icon><House /></el-icon>
+            <span>数据看板</span>
+          </template>
+          <el-menu-item index="/statistics/overview">
+            <el-icon><TrendCharts /></el-icon>
+            <span>总览统计</span>
+          </el-menu-item>
+          <el-menu-item index="/statistics/employee">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>员工统计</span>
+          </el-menu-item>
+          <el-menu-item index="/statistics/salary">
+            <el-icon><PieChart /></el-icon>
+            <span>薪资统计</span>
+          </el-menu-item>
+          <el-menu-item index="/statistics/department">
+            <el-icon><Histogram /></el-icon>
+            <span>部门统计</span>
+          </el-menu-item>
+        </el-sub-menu>
+        
+        <el-menu-item index="/employee/list">
+          <el-icon><User /></el-icon>
+          <span>员工管理</span>
         </el-menu-item>
         
-        <el-sub-menu index="employee">
-          <template #title>
-            <el-icon><User /></el-icon>
-            <span>员工管理</span>
-          </template>
-          <el-menu-item index="/employee/list">员工列表</el-menu-item>
-          <el-menu-item index="/employee/add">添加员工</el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/job/list">
+          <el-icon><Briefcase /></el-icon>
+          <span>岗位管理</span>
+        </el-menu-item>
         
-        <el-sub-menu index="job">
-          <template #title>
-            <el-icon><Briefcase /></el-icon>
-            <span>岗位管理</span>
-          </template>
-          <el-menu-item index="/job/list">岗位列表</el-menu-item>
-          <el-menu-item index="/job/add">添加岗位</el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/training/lesson">
+          <el-icon><Reading /></el-icon>
+          <span>培训管理</span>
+        </el-menu-item>
         
-        <el-sub-menu index="department">
-          <template #title>
-            <el-icon><OfficeBuilding /></el-icon>
-            <span>部门管理</span>
-          </template>
-          <el-menu-item index="/department/list">部门列表</el-menu-item>
-          <el-menu-item index="/department/add">添加部门</el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/training/trainee">
+          <el-icon><UserFilled /></el-icon>
+          <span>学员管理</span>
+        </el-menu-item>
         
-        <el-sub-menu index="training">
-          <template #title>
-            <el-icon><Reading /></el-icon>
-            <span>培训管理</span>
-          </template>
-          <el-menu-item index="/training/lesson">培训课程</el-menu-item>
-          <el-menu-item index="/training/trainee">学员管理</el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/salary/list">
+          <el-icon><Money /></el-icon>
+          <span>薪资管理</span>
+        </el-menu-item>
         
-        <el-sub-menu index="salary">
-          <template #title>
-            <el-icon><Money /></el-icon>
-            <span>薪资管理</span>
-          </template>
-          <el-menu-item index="/salary/list">薪资列表</el-menu-item>
-          <el-menu-item index="/salary/add">添加薪资</el-menu-item>
-        </el-sub-menu>
-        
-        <el-sub-menu index="system">
+        <el-sub-menu v-if="authStore.hasAdminAccess" index="advanced">
           <template #title>
             <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
+            <span>高级管理</span>
           </template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/log">系统日志</el-menu-item>
-          <el-menu-item index="/system/payment">收支管理</el-menu-item>
-        </el-sub-menu>
-        
-        <el-sub-menu index="statistics">
-          <template #title>
-            <el-icon><TrendCharts /></el-icon>
-            <span>数据统计</span>
-          </template>
-          <el-menu-item index="/statistics/overview">总览统计</el-menu-item>
-          <el-menu-item index="/statistics/employee">员工统计</el-menu-item>
-          <el-menu-item index="/statistics/salary">薪资统计</el-menu-item>
-          <el-menu-item index="/statistics/department">部门统计</el-menu-item>
+          <el-menu-item index="/department/list">
+            <el-icon><OfficeBuilding /></el-icon>
+            <span>部门管理</span>
+          </el-menu-item>
+          <el-menu-item index="/system/payment">
+            <el-icon><Money /></el-icon>
+            <span>收支管理</span>
+          </el-menu-item>
+          <el-menu-item index="/system/user">
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/system/log">
+            <el-icon><Document /></el-icon>
+            <span>系统日志</span>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -113,26 +113,20 @@
         </div>
         
         <div class="header-right">
-          <!-- 调试信息 -->
-          <div class="debug-info" v-if="showDebug">
-            <span>Token: {{ authStore.token ? '已设置' : '未设置' }}</span>
-            <span>用户: {{ authStore.user?.name || '未登录' }}</span>
+          <div class="user-display">
+            <span class="user-name">{{ authStore.user?.name || '用户' }}</span>
+            <el-dropdown @command="handleCommand">
+              <span class="user-info">
+                <el-icon><Avatar /></el-icon>
+                <el-icon><ArrowDown /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
-          
-          <el-dropdown @command="handleCommand">
-            <span class="user-info">
-              <el-icon><Avatar /></el-icon>
-              {{ authStore.user?.name || '用户' }}
-              <el-icon><ArrowDown /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="debug">切换调试信息</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
         </div>
       </el-header>
       
@@ -155,12 +149,17 @@ import {
   OfficeBuilding, 
   Reading, 
   Money, 
-  Setting, 
   TrendCharts,
   Expand,
   Fold,
   Avatar,
-  ArrowDown
+  ArrowDown,
+  Document,
+  UserFilled,
+  DataAnalysis,
+  PieChart,
+  Histogram,
+  Setting
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -170,7 +169,6 @@ const appStore = useAppStore()
 
 // 移动端检测
 const isMobile = ref(false)
-const showDebug = ref(false)
 
 const checkIsMobile = () => {
   isMobile.value = window.innerWidth <= 768
@@ -193,27 +191,138 @@ const activeMenu = computed(() => {
 
 const breadcrumbs = computed(() => {
   const pathArray = route.path.split('/').filter(Boolean)
-  const breadcrumbMap: Record<string, string> = {
-    'dashboard': '仪表盘',
+  
+  // 处理home页面 - 点击logo访问
+  if (pathArray.length === 1 && pathArray[0] === 'home') {
+    return [{
+      name: '数据看板',
+      path: '/home'
+    }]
+  }
+  
+  // 处理统计页面的路径 - 现在在数据看板子菜单下
+  if (pathArray.length === 3 && pathArray[0] === 'statistics') {
+    const statNameMap: Record<string, string> = {
+      'employee': '员工统计',
+      'salary': '薪资统计',
+      'department': '部门统计',
+      'overview': '总览统计'
+    }
+    return [
+      {
+        name: '数据看板',
+        path: '#'
+      },
+      {
+        name: statNameMap[pathArray[2]] || pathArray[2],
+        path: '/' + pathArray.join('/')
+      }
+    ]
+  }
+  
+  // 处理高级管理页面的路径
+  if (pathArray.length === 2 && pathArray[0] === 'department' && pathArray[1] === 'list') {
+    return [
+      {
+        name: '高级管理',
+        path: '#'
+      },
+      {
+        name: '部门管理',
+        path: '/department/list'
+      }
+    ]
+  }
+  
+  if (pathArray.length === 3 && pathArray[0] === 'system') {
+    const systemNameMap: Record<string, string> = {
+      'log': '系统日志',
+      'payment': '收支管理',
+      'user': '用户管理'
+    }
+    return [
+      {
+        name: '高级管理',
+        path: '#'
+      },
+      {
+        name: systemNameMap[pathArray[2]] || pathArray[2],
+        path: '/' + pathArray.join('/')
+      }
+    ]
+  }
+  
+  // 处理培训管理页面 - 现在是独立菜单项
+  if (pathArray.length === 2 && pathArray[0] === 'training' && pathArray[1] === 'lesson') {
+    return [{
+      name: '培训管理',
+      path: '/training/lesson'
+    }]
+  }
+  
+  // 处理学员管理页面 - 现在是独立菜单项
+  if (pathArray.length === 2 && pathArray[0] === 'training' && pathArray[1] === 'trainee') {
+    return [{
+      name: '学员管理',
+      path: '/training/trainee'
+    }]
+  }
+  
+  // 处理独立菜单项
+  const menuMap: Record<string, string> = {
     'employee': '员工管理',
     'job': '岗位管理',
-    'department': '部门管理',
-    'training': '培训管理',
-    'salary': '薪资管理',
-    'system': '系统管理',
-    'statistics': '数据统计',
-    'list': '列表',
-    'add': '添加',
-    'lesson': '培训课程',
-    'trainee': '学员管理',
-    'user': '用户管理',
+    'salary': '薪资管理'
+  }
+  
+  if (pathArray.length === 2 && pathArray[1] === 'list' && menuMap[pathArray[0]]) {
+    return [{
+      name: menuMap[pathArray[0]],
+      path: '/' + pathArray.join('/')
+    }]
+  }
+  
+  // 处理添加页面
+  if (pathArray.length === 2 && pathArray[1] === 'add') {
+    const addPageMap: Record<string, string> = {
+      'employee': '员工管理',
+      'job': '岗位管理',
+      'department': '部门管理',
+      'salary': '薪资管理'
+    }
+    return [
+      {
+        name: addPageMap[pathArray[0]] || pathArray[0],
+        path: '/' + pathArray[0] + '/list'
+      },
+      {
+        name: '添加',
+        path: '/' + pathArray.join('/')
+      }
+    ]
+  }
+  
+  // 默认处理 - 使用路径映射显示中文名称
+  const pathNameMap: Record<string, string> = {
+    'statistics': '数据看板',
+    'overview': '总览统计',
+    'employee': '员工统计',
+    'salary': '薪资统计',
+    'department': '部门统计',
+    'system': '高级管理',
     'log': '系统日志',
     'payment': '收支管理',
-    'overview': '总览统计'
+    'user': '用户管理',
+    'training': '培训管理',
+    'lesson': '培训管理',
+    'trainee': '学员管理',
+    'job': '岗位管理',
+    'list': '列表',
+    'add': '添加'
   }
   
   return pathArray.map((path, index) => ({
-    name: breadcrumbMap[path] || path,
+    name: pathNameMap[path] || path,
     path: '/' + pathArray.slice(0, index + 1).join('/')
   }))
 })
@@ -222,14 +331,12 @@ const toggleSidebar = () => {
   appStore.toggleSidebar()
 }
 
+const goToHome = () => {
+  router.push('/home')
+}
+
 const handleCommand = (command: string) => {
   switch (command) {
-    case 'profile':
-      // 跳转到个人资料页面
-      break
-    case 'debug':
-      showDebug.value = !showDebug.value
-      break
     case 'logout':
       authStore.logout()
       router.push('/login')
@@ -257,6 +364,13 @@ const handleCommand = (command: string) => {
   justify-content: center;
   background-color: #3A4148;
   color: #FFCA42;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logo:hover {
+  background-color: #FFCA42;
+  color: #3A4148;
 }
 
 .logo h2 {
@@ -297,17 +411,59 @@ const handleCommand = (command: string) => {
   color: #4A5259 !important;
 }
 
-/* el-sub-menu 悬停时的背景色 */
-.sidebar-menu.el-menu .el-sub-menu__title:hover {
+/* el-sub-menu 悬停时的背景色 - 使用更高优先级的选择器 */
+.layout-container .sidebar .sidebar-menu.el-menu .el-sub-menu__title:hover {
   background-color: #FFCA42 !important;
   color: #4A5259 !important;
 }
 
-.sidebar-menu.el-menu .el-sub-menu__title:hover .el-icon {
+.layout-container .sidebar .sidebar-menu.el-menu .el-sub-menu__title:hover .el-icon {
   color: #4A5259 !important;
 }
 
-.sidebar-menu.el-menu .el-sub-menu__title:hover span {
+.layout-container .sidebar .sidebar-menu.el-menu .el-sub-menu__title:hover span {
+  color: #4A5259 !important;
+}
+
+/* 使用深度选择器确保覆盖Element Plus默认样式 */
+.layout-container .sidebar :deep(.el-sub-menu__title:hover) {
+  background-color: #FFCA42 !important;
+  color: #4A5259 !important;
+}
+
+.layout-container .sidebar :deep(.el-sub-menu__title:hover .el-icon) {
+  color: #4A5259 !important;
+}
+
+.layout-container .sidebar :deep(.el-sub-menu__title:hover span) {
+  color: #4A5259 !important;
+}
+
+/* 更具体的选择器 - 针对数据看板和高级管理父菜单 */
+.el-container .el-aside .sidebar .sidebar-menu .el-sub-menu .el-sub-menu__title:hover {
+  background-color: #FFCA42 !important;
+  color: #4A5259 !important;
+}
+
+.el-container .el-aside .sidebar .sidebar-menu .el-sub-menu .el-sub-menu__title:hover .el-icon {
+  color: #4A5259 !important;
+}
+
+.el-container .el-aside .sidebar .sidebar-menu .el-sub-menu .el-sub-menu__title:hover span {
+  color: #4A5259 !important;
+}
+
+/* 最高优先级选择器 - 确保覆盖所有Element Plus样式 */
+.layout-container .el-aside.sidebar .sidebar-menu.el-menu .el-sub-menu .el-sub-menu__title:hover {
+  background-color: #FFCA42 !important;
+  color: #4A5259 !important;
+}
+
+.layout-container .el-aside.sidebar .sidebar-menu.el-menu .el-sub-menu .el-sub-menu__title:hover .el-icon {
+  color: #4A5259 !important;
+}
+
+.layout-container .el-aside.sidebar .sidebar-menu.el-menu .el-sub-menu .el-sub-menu__title:hover span {
   color: #4A5259 !important;
 }
 
@@ -388,17 +544,43 @@ const handleCommand = (command: string) => {
   align-items: center;
 }
 
-/* 面包屑导航样式 */
-.header .el-breadcrumb {
-  color: #FFCA42;
+/* 面包屑导航样式 - 使用最高优先级的选择器 */
+.el-container .el-header .el-breadcrumb {
+  color: #FFCA42 !important;
 }
 
-.header .el-breadcrumb__item .el-breadcrumb__inner {
-  color: #FFCA42;
+.el-container .el-header .el-breadcrumb .el-breadcrumb__item .el-breadcrumb__inner {
+  color: #FFCA42 !important;
+  font-weight: bold !important;
 }
 
-.header .el-breadcrumb__item .el-breadcrumb__inner:hover {
-  color: #ffffff;
+.el-container .el-header .el-breadcrumb .el-breadcrumb__item .el-breadcrumb__inner:hover {
+  color: #ffffff !important;
+}
+
+/* 面包屑分隔符颜色 - 使用最高优先级 */
+.el-container .el-header .el-breadcrumb .el-breadcrumb__separator {
+  color: #FFCA42 !important;
+}
+
+/* 使用深度选择器来覆盖 Element Plus 样式 */
+.layout-container .header :deep(.el-breadcrumb__item .el-breadcrumb__inner) {
+  color: #FFCA42 !important;
+  font-weight: bold !important;
+}
+
+.layout-container .header :deep(.el-breadcrumb__separator) {
+  color: #FFCA42 !important;
+}
+
+/* 更具体的选择器 */
+.layout-container .header .el-breadcrumb .el-breadcrumb__item .el-breadcrumb__inner {
+  color: #FFCA42 !important;
+  font-weight: bold !important;
+}
+
+.layout-container .header .el-breadcrumb .el-breadcrumb__separator {
+  color: #FFCA42 !important;
 }
 
 .collapse-btn {
@@ -416,14 +598,17 @@ const handleCommand = (command: string) => {
   align-items: center;
 }
 
-.debug-info {
-  margin-right: 20px;
-  font-size: 12px;
-  color: #FFCA42;
+
+.user-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.debug-info span {
-  margin-right: 10px;
+.user-name {
+  color: #FFCA42;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .user-info {

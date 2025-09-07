@@ -8,6 +8,11 @@ export const useAuthStore = defineStore('auth', () => {
   
   const isLoggedIn = computed(() => !!token.value && token.value !== 'null' && token.value !== 'undefined')
   
+  // 检查用户是否有高级管理权限
+  const hasAdminAccess = computed(() => {
+    return user.value?.role === 'admin' || user.value?.role === 'leader'
+  })
+  
   // 获取存储的token
   function getStoredToken(): string | null {
     try {
@@ -70,6 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     isLoggedIn,
+    hasAdminAccess,
     login,
     logout
   }

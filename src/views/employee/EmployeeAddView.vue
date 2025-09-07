@@ -27,7 +27,7 @@
           <el-col :span="12">
             <el-form-item label="性别" prop="gender">
               <el-select v-model="form.gender" placeholder="请选择性别">
-                <el-option label="女" :value="0" />
+                <el-option label="女" :value="2" />
                 <el-option label="男" :value="1" />
               </el-select>
             </el-form-item>
@@ -91,12 +91,12 @@
           <el-col :span="12">
             <el-form-item label="岗位" prop="job">
               <el-select v-model="form.job" placeholder="请选择岗位">
-                <el-option label="高级工程师" :value="1" />
-                <el-option label="软件工程师" :value="2" />
-                <el-option label="产品经理" :value="3" />
-                <el-option label="市场专员" :value="4" />
-                <el-option label="人事专员" :value="5" />
-                <el-option label="财务专员" :value="6" />
+                <el-option 
+                  v-for="job in jobList" 
+                  :key="job.id" 
+                  :label="job.name" 
+                  :value="job.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -106,12 +106,12 @@
           <el-col :span="12">
             <el-form-item label="部门" prop="department">
               <el-select v-model="form.department" placeholder="请选择部门">
-                <el-option label="技术部" :value="1" />
-                <el-option label="市场部" :value="2" />
-                <el-option label="人事部" :value="3" />
-                <el-option label="财务部" :value="4" />
-                <el-option label="运营部" :value="5" />
-                <el-option label="客服部" :value="6" />
+                <el-option 
+                  v-for="department in departmentList" 
+                  :key="department.id" 
+                  :label="department.name" 
+                  :value="department.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -169,19 +169,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { workerApi } from '@/api'
-import type { Worker } from '@/types'
+import { workerApi, jobApi, departmentApi } from '@/api'
+import type { Worker, Job, Department } from '@/types'
 
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 
+// 部门和岗位列表
+const departmentList = ref<Department[]>([])
+const jobList = ref<Job[]>([])
+
 const form = reactive<Omit<Worker, 'id'>>({
   name: '',
-  gender: 1,
+  gender: 1, // 默认选择男
   degree: 2,
   birthday: '',
   socialSecurity: 1,
@@ -255,9 +259,48 @@ const handleReset = () => {
   formRef.value?.resetFields()
 }
 
+// 获取部门列表
+const fetchDepartmentList = async () => {
+  try {
+    const response = await departmentApi.getAll()
+    if (response.code === 0) {
+      departmentList.value = response.data
+    }
+  } catch (error) {
+    console.error('获取部门列表失败:', error)
+    // 如果API调用失败，使用模拟数据作为备选
+    departmentList.value = [
+      { id: 1, name: '技术部', supervisor: 0, uperId: 0 },
+      { id: 2, name: '市场部', supervisor: 0, uperId: 0 },
+      { id: 3, name: '人事部', supervisor: 0, uperId: 0 },
+      { id: 4, name: '财务部', supervisor: 0, uperId: 0 },
+      { id: 5, name: '运营部', supervisor: 0, uperId: 0 },
+      { id: 6, name: '客服部', supervisor: 0, uperId: 0 }
+    ]
+  }
+}
+
+// 获取岗位列表
+const fetchJobList = async () => {
+  try {
+    const response = await jobApi.getAll()
+    if (response.code === 0) {
+      jobList.value = response.data
+    }
+  } catch (error) {
+    console.error('获取岗位列表失败:', error)
+  }
+}
+
 const handleBack = () => {
   router.push('/employee/list')
 }
+
+// 组件挂载时获取数据
+onMounted(async () => {
+  await fetchDepartmentList()
+  await fetchJobList()
+})
 </script>
 
 <style scoped>

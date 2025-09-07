@@ -57,6 +57,26 @@
             测试Admin登录 (admin/88888888)
           </el-button>
         </el-form-item>
+        <el-form-item>
+          <el-button
+            type="warning"
+            size="large"
+            @click="testLeaderLogin"
+            class="test-btn"
+          >
+            测试Leader登录 (leader/88888888)
+          </el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="info"
+            size="large"
+            @click="testUserLogin"
+            class="test-btn"
+          >
+            测试普通用户登录 (user/88888888)
+          </el-button>
+        </el-form-item>
       </el-form>
     </div>
   </div>
@@ -72,6 +92,13 @@ import type { LoginRequest } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// 根据用户名获取角色
+const getRoleByUsername = (username: string): string => {
+  if (username === 'admin') return 'admin'
+  if (username === 'leader') return 'leader'
+  return 'user'
+}
 
 const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
@@ -106,7 +133,8 @@ const handleLogin = async () => {
         id: 1,
         name: loginForm.name,
         password: '',
-        worker: undefined
+        worker: undefined,
+        role: getRoleByUsername(loginForm.name) // 根据用户名设置角色
       }
       
       // 从响应中获取token，根据实际后端格式调整
@@ -143,7 +171,7 @@ const handleLogin = async () => {
       ElMessage.success('登录成功')
       try {
         authStore.login(userData, token)
-        router.push('/dashboard')
+        router.push('/home')
       } catch (storeError: any) {
         ElMessage.error(storeError.message || '登录状态保存失败')
         console.error('Store login error:', storeError)
@@ -174,6 +202,20 @@ const handleLogin = async () => {
 // 测试admin登录
 const testAdminLogin = () => {
   loginForm.name = 'admin'
+  loginForm.password = '88888888'
+  handleLogin()
+}
+
+// 测试leader登录
+const testLeaderLogin = () => {
+  loginForm.name = 'leader'
+  loginForm.password = '88888888'
+  handleLogin()
+}
+
+// 测试普通用户登录
+const testUserLogin = () => {
+  loginForm.name = 'user'
   loginForm.password = '88888888'
   handleLogin()
 }

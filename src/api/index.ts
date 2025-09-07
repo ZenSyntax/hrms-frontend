@@ -127,8 +127,9 @@ export const workerApi = {
   },
   
   // 精确查询员工
-  getExact: (): Promise<ApiResponse<Worker>> => {
-    return api.get('/user/worker/getExact')
+  getExact: (id?: number): Promise<ApiResponse<Worker>> => {
+    const url = id ? `/user/worker/getExact/${id}` : '/user/worker/getExact'
+    return api.get(url)
   },
   
   // 导出员工信息
@@ -149,6 +150,7 @@ export const jobApi = {
     return api.delete(`/user/job/delete/${id}`)
   },
   
+  
   // 修改岗位信息
   update: (data: Job): Promise<ApiResponse> => {
     return api.put('/user/job/revise', data)
@@ -167,6 +169,11 @@ export const jobApi = {
   // 精确查询岗位
   getExact: (id: number): Promise<ApiResponse<Job>> => {
     return api.get(`/user/job/getExact/${id}`)
+  },
+  
+  // 获取所有岗位
+  getAll: (): Promise<ApiResponse<Job[]>> => {
+    return api.get('/user/job/getAll')
   }
 }
 
@@ -195,6 +202,11 @@ export const lessonApi = {
   // 根据id或名称查询
   getById: (params: LessonQueryParams): Promise<PageResponse<Lesson>> => {
     return api.get('/user/lesson/getById', { params })
+  },
+  
+  // 获取所有课程
+  getAll: (): Promise<ApiResponse<Lesson[]>> => {
+    return api.get('/user/lesson/getAll')
   }
 }
 
@@ -202,17 +214,27 @@ export const lessonApi = {
 export const traineeApi = {
   // 批量添加学员
   addBatch: (data: { lesId: number; workerIds: number[] }): Promise<ApiResponse> => {
-    return api.post('/user/trainee/addBatch', data)
+    return api.post('/user/number/addBatch', data)
   },
   
   // 批量删除学员
   deleteBatch: (ids: number[]): Promise<ApiResponse> => {
-    return api.delete('/user/trainee/deleteBatch', { data: ids })
+    return api.delete('/user/number/deleteBatch', { data: ids })
   },
   
   // 分页查询学员
   getByPage: (params: TraineeQueryParams): Promise<PageResponse> => {
-    return api.get('/user/trainee/getByPage', { params })
+    return api.get('/user/number/getByPage', { params })
+  },
+  
+  // 获取未选择该课程的员工信息
+  getNotInLesson: (lessonId: number): Promise<ApiResponse> => {
+    return api.get(`/user/number/notInLesson/${lessonId}`)
+  },
+  
+  // 获取选择了该课程的员工信息
+  getInLesson: (lessonId: number): Promise<ApiResponse> => {
+    return api.get(`/user/number/inLesson/${lessonId}`)
   }
 }
 
@@ -226,6 +248,11 @@ export const salaryApi = {
   // 删除薪资条
   delete: (id: number): Promise<ApiResponse> => {
     return api.delete(`/user/salary/delete/${id}`)
+  },
+  
+  // 批量删除薪资条
+  deleteBatch: (ids: number[]): Promise<ApiResponse> => {
+    return api.delete('/user/salary/deleteBatch', { data: ids })
   },
   
   // 修改薪资条
@@ -247,7 +274,7 @@ export const salaryApi = {
 // 用户管理API
 export const userApi = {
   // 添加用户
-  add: (data: Omit<User, 'id'>): Promise<ApiResponse> => {
+  add: (data: { name: string; password: string; worker: number }): Promise<ApiResponse> => {
     return api.post('/admin/user/addUser', data)
   },
   
@@ -257,7 +284,7 @@ export const userApi = {
   },
   
   // 获取用户列表
-  getList: (params: PageParams): Promise<PageResponse<User>> => {
+  getList: (params: { pageNum: number; pageSize: number }): Promise<PageResponse<User>> => {
     return api.get('/admin/user/getUserList', { params })
   }
 }
@@ -308,6 +335,16 @@ export const departmentApi = {
   // 删除部门
   delete: (id: number): Promise<ApiResponse> => {
     return api.delete(`/admin/department/delete/${id}`)
+  },
+  
+  // 分页获取部门列表
+  getByPage: (params: PageParams): Promise<PageResponse<Department>> => {
+    return api.get('/user/statistic/getDeptByPage', { params })
+  },
+  
+  // 获取所有部门
+  getAll: (): Promise<ApiResponse<Department[]>> => {
+    return api.get('/user/statistic/getAllDept')
   }
 }
 
