@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 
 interface TreeNode {
   id: string
@@ -144,8 +144,10 @@ interface TreeNode {
   y?: number
   color?: string
   borderColor?: string
+  borderWidth?: number
   textColor?: string
   shadowColor?: string
+  shadowOffset?: number
   hovered?: boolean
 }
 
@@ -203,7 +205,7 @@ const expandedStates = ref<Map<string, boolean>>(new Map())
 // 保存节点展开状态
 const saveExpandedStates = (node: TreeNode, level: number = 0) => {
   const nodeKey = `${node.id || node.name}_${level}`
-  expandedStates.value.set(nodeKey, node.expanded)
+  expandedStates.value.set(nodeKey, node.expanded ?? false)
   
   if (node.children) {
     for (const child of node.children) {

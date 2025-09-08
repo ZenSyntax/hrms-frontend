@@ -99,7 +99,6 @@ npm run preview
 - `GET /statistics/overview` - 获取总览统计
 - `GET /statistics/employee` - 获取员工统计
 - `GET /statistics/salary` - 获取薪资统计
-- `GET /statistics/department` - 获取部门统计
 - `GET /statistics/training` - 获取培训统计
 - `GET /statistics/system` - 获取系统统计
 - `GET /statistics/payment` - 获取收支统计
@@ -122,7 +121,6 @@ npm run preview
 - `StatisticsOverviewVO` - 总览统计
 - `EmployeeStatisticsVO` - 员工统计
 - `SalaryStatisticsVO` - 薪资统计
-- `DepartmentStatisticsVO` - 部门统计
 - `TrainingStatisticsVO` - 培训统计
 - `SystemStatisticsVO` - 系统统计
 - `PaymentStatisticsVO` - 收支统计

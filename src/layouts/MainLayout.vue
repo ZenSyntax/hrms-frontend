@@ -33,10 +33,6 @@
             <el-icon><PieChart /></el-icon>
             <span>薪资统计</span>
           </el-menu-item>
-          <el-menu-item index="/statistics/department">
-            <el-icon><Histogram /></el-icon>
-            <span>部门统计</span>
-          </el-menu-item>
         </el-sub-menu>
         
         <el-menu-item index="/employee/list">
@@ -205,7 +201,6 @@ const breadcrumbs = computed(() => {
     const statNameMap: Record<string, string> = {
       'employee': '员工统计',
       'salary': '薪资统计',
-      'department': '部门统计',
       'overview': '总览统计'
     }
     return [
@@ -308,7 +303,6 @@ const breadcrumbs = computed(() => {
     'overview': '总览统计',
     'employee': '员工统计',
     'salary': '薪资统计',
-    'department': '部门统计',
     'system': '高级管理',
     'log': '系统日志',
     'payment': '收支管理',

@@ -112,11 +112,6 @@ const router = createRouter({
           name: 'statistics-salary',
           component: () => import('@/views/statistics/SalaryStatisticsView.vue')
         },
-        {
-          path: 'statistics/department',
-          name: 'statistics-department',
-          component: () => import('@/views/statistics/DepartmentStatisticsView.vue')
-        },
         // 禁止访问页面
         {
           path: 'forbidden',

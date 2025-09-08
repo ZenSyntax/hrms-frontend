@@ -221,7 +221,7 @@ const handleSubmit = async () => {
     const submitData = {
       jobId: form.jobId,
       workerId: form.workerId,
-      settlementTime: form.settlementTime || null, // 可以为null，后端会自动设置
+      settlementTime: form.settlementTime || '', // 空字符串，后端会自动设置
       cycle: form.cycle,
       salaryOffset: form.salaryOffset
     }

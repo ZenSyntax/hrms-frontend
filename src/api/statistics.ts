@@ -3,7 +3,6 @@ import type {
   StatisticsOverviewVO,
   EmployeeStatisticsVO,
   SalaryStatisticsVO,
-  DepartmentStatisticsVO,
   TrainingStatisticsVO,
   SystemStatisticsVO,
   PaymentStatisticsVO
@@ -13,12 +12,12 @@ import type {
 export const statisticsApi = {
   // 获取总览统计
   getOverview: (): Promise<StatisticsOverviewVO> => {
-    return api.get('/user/statistics/overview')
+    return api.get('/user/statistic/getOverviewData')
   },
   
   // 获取员工统计
   getEmployeeStatistics: (): Promise<EmployeeStatisticsVO> => {
-    return api.get('/user/statistics/employee')
+    return api.get('/user/statistic/getWorkerData')
   },
   
   // 获取薪资统计
@@ -26,10 +25,6 @@ export const statisticsApi = {
     return api.get('/user/statistics/salary')
   },
   
-  // 获取部门统计
-  getDepartmentStatistics: (): Promise<DepartmentStatisticsVO> => {
-    return api.get('/user/statistics/department')
-  },
   
   // 获取培训统计
   getTrainingStatistics: (): Promise<TrainingStatisticsVO> => {

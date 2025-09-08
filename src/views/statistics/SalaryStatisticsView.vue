@@ -1,345 +1,243 @@
 <template>
   <div class="salary-statistics">
-    <el-row :gutter="20">
-      <!-- 薪资分布 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>薪资分布</span>
-            </div>
-          </template>
-          <div ref="salaryDistributionChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>薪资统计</span>
+        </div>
+      </template>
       
-      <!-- 平均薪资趋势 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>平均薪资趋势</span>
-            </div>
-          </template>
-          <div ref="averageSalaryTrendChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <!-- 部门薪资对比 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>部门薪资对比</span>
-            </div>
-          </template>
-          <div ref="departmentSalaryChartRef" style="height: 350px;"></div>
-        </el-card>
-      </el-col>
+      <!-- 员工选择区域 -->
+      <div class="employee-selector">
+        <el-row :gutter="20" align="middle">
+          <el-col :span="6">
+            <label class="selector-label">选择员工：</label>
+          </el-col>
+          <el-col :span="18">
+            <el-select
+              v-model="selectedEmployeeId"
+              placeholder="请选择员工"
+              filterable
+              remote
+              :remote-method="filterEmployees"
+              :loading="loading"
+              @change="onEmployeeChange"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="employee in filteredEmployees"
+                :key="employee.id"
+                :label="employee.name"
+                :value="employee.id"
+              />
+            </el-select>
+          </el-col>
+        </el-row>
+      </div>
       
-      <!-- 岗位薪资对比 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>岗位薪资对比</span>
-            </div>
-          </template>
-          <div ref="jobSalaryChartRef" style="height: 350px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <!-- 薪资统计表格 -->
-    <el-row style="margin-top: 20px;">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>薪资统计详情</span>
-            </div>
-          </template>
-          
-          <el-tabs v-model="activeTab">
-            <el-tab-pane label="部门薪资统计" name="department">
-              <el-table :data="departmentSalaryData" stripe border>
-                <el-table-column prop="departmentName" label="部门名称" />
-                <el-table-column prop="averageSalary" label="平均薪资" />
-                <el-table-column prop="maxSalary" label="最高薪资" />
-                <el-table-column prop="minSalary" label="最低薪资" />
-                <el-table-column prop="employeeCount" label="员工数量" />
-              </el-table>
-            </el-tab-pane>
-            
-            <el-tab-pane label="岗位薪资统计" name="job">
-              <el-table :data="jobSalaryData" stripe border>
-                <el-table-column prop="jobName" label="岗位名称" />
-                <el-table-column prop="averageSalary" label="平均薪资" />
-                <el-table-column prop="maxSalary" label="最高薪资" />
-                <el-table-column prop="minSalary" label="最低薪资" />
-                <el-table-column prop="employeeCount" label="员工数量" />
-              </el-table>
-            </el-tab-pane>
-          </el-tabs>
-        </el-card>
-      </el-col>
-    </el-row>
+      <!-- 薪资趋势图表 -->
+      <div class="chart-container" v-if="selectedEmployeeId && salaryData.length > 0">
+        <div class="chart-title">薪资变化趋势</div>
+        <div ref="salaryChartRef" class="salary-chart"></div>
+      </div>
+      
+      <!-- 无数据提示 -->
+      <div v-else-if="selectedEmployeeId && salaryData.length === 0" class="no-data">
+        <el-empty description="该员工暂无薪资数据" />
+      </div>
+      
+      <!-- 未选择员工提示 -->
+      <div v-else class="no-selection">
+        <el-empty description="请选择员工查看薪资统计" />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { statisticsApi } from '@/api/statistics'
-import type { SalaryStatisticsVO } from '@/types/statistics'
+import { ElMessage } from 'element-plus'
+import api from '@/api/index'
 
-const salaryDistributionChartRef = ref<HTMLElement>()
-const averageSalaryTrendChartRef = ref<HTMLElement>()
-const departmentSalaryChartRef = ref<HTMLElement>()
-const jobSalaryChartRef = ref<HTMLElement>()
+// 员工接口类型
+interface Employee {
+  id: number
+  name: string
+}
 
-const activeTab = ref('department')
+// 薪资数据接口类型
+interface SalaryData {
+  settlementTime: string
+  salary: number
+}
 
-let salaryStats: SalaryStatisticsVO | null = null
+// 响应数据接口类型
+interface ApiResponse<T> {
+  code: number
+  message: string
+  data: T
+}
 
-const departmentSalaryData = ref([
-  { departmentName: '技术部', averageSalary: 12000, maxSalary: 20000, minSalary: 8000, employeeCount: 45 },
-  { departmentName: '市场部', averageSalary: 9500, maxSalary: 15000, minSalary: 6000, employeeCount: 28 },
-  { departmentName: '人事部', averageSalary: 8000, maxSalary: 12000, minSalary: 5000, employeeCount: 15 },
-  { departmentName: '财务部', averageSalary: 8500, maxSalary: 13000, minSalary: 5500, employeeCount: 12 },
-  { departmentName: '运营部', averageSalary: 9000, maxSalary: 14000, minSalary: 6000, employeeCount: 25 },
-  { departmentName: '客服部', averageSalary: 7000, maxSalary: 10000, minSalary: 4500, employeeCount: 18 }
-])
+// 响应式数据
+const selectedEmployeeId = ref<number | null>(null)
+const allEmployees = ref<Employee[]>([])
+const filteredEmployees = ref<Employee[]>([])
+const salaryData = ref<SalaryData[]>([])
+const loading = ref(false)
+const salaryChartRef = ref<HTMLElement>()
 
-const jobSalaryData = ref([
-  { jobName: '高级工程师', averageSalary: 15000, maxSalary: 25000, minSalary: 12000, employeeCount: 20 },
-  { jobName: '软件工程师', averageSalary: 10000, maxSalary: 15000, minSalary: 8000, employeeCount: 25 },
-  { jobName: '产品经理', averageSalary: 12000, maxSalary: 18000, minSalary: 9000, employeeCount: 8 },
-  { jobName: '市场专员', averageSalary: 8000, maxSalary: 12000, minSalary: 6000, employeeCount: 15 },
-  { jobName: '人事专员', averageSalary: 7000, maxSalary: 10000, minSalary: 5000, employeeCount: 10 },
-  { jobName: '财务专员', averageSalary: 7500, maxSalary: 11000, minSalary: 5500, employeeCount: 8 }
-])
-
-onMounted(async () => {
-  await loadData()
-  initCharts()
-})
-
-const loadData = async () => {
+// 获取所有员工列表
+const getAllEmployees = async () => {
   try {
-    salaryStats = await statisticsApi.getSalaryStatistics()
-  } catch (error) {
-    console.error('加载薪资统计数据失败:', error)
-    // 使用模拟数据
-    salaryStats = {
-      salaryDistribution: {
-        under5000: 15,
-        salary5000to8000: 45,
-        salary8000to12000: 60,
-        salary12000to20000: 25,
-        above20000: 8
-      },
-      averageSalaryTrend: [
-        { month: '2024-01', averageSalary: 8500, maxSalary: 12000, minSalary: 5000 },
-        { month: '2024-02', averageSalary: 8600, maxSalary: 12500, minSalary: 5100 },
-        { month: '2024-03', averageSalary: 8700, maxSalary: 13000, minSalary: 5200 },
-        { month: '2024-04', averageSalary: 8800, maxSalary: 13500, minSalary: 5300 },
-        { month: '2024-05', averageSalary: 8900, maxSalary: 14000, minSalary: 5400 },
-        { month: '2024-06', averageSalary: 9000, maxSalary: 14500, minSalary: 5500 },
-        { month: '2024-07', averageSalary: 9100, maxSalary: 15000, minSalary: 5600 },
-        { month: '2024-08', averageSalary: 9200, maxSalary: 15500, minSalary: 5700 },
-        { month: '2024-09', averageSalary: 9300, maxSalary: 16000, minSalary: 5800 },
-        { month: '2024-10', averageSalary: 9400, maxSalary: 16500, minSalary: 5900 },
-        { month: '2024-11', averageSalary: 9500, maxSalary: 17000, minSalary: 6000 },
-        { month: '2024-12', averageSalary: 9600, maxSalary: 17500, minSalary: 6100 }
-      ],
-      departmentSalaryComparison: departmentSalaryData.value,
-      jobSalaryComparison: jobSalaryData.value,
-      salaryGrowthRate: {
-        monthlyGrowth: 1.2,
-        yearlyGrowth: 15.5
-      }
+    loading.value = true
+    const response: ApiResponse<Employee[]> = await api.get('/user/worker/getAll')
+    if (response.code === 0) {
+      allEmployees.value = response.data
+      filteredEmployees.value = response.data
+    } else {
+      ElMessage.error(response.message || '获取员工列表失败')
     }
+  } catch (error) {
+    console.error('获取员工列表失败:', error)
+    ElMessage.error('获取员工列表失败')
+  } finally {
+    loading.value = false
   }
 }
 
-const initCharts = () => {
-  if (!salaryStats) return
+// 过滤员工（模糊搜索）
+const filterEmployees = (query: string) => {
+  if (!query) {
+    filteredEmployees.value = allEmployees.value
+  } else {
+    filteredEmployees.value = allEmployees.value.filter(employee =>
+      employee.name.toLowerCase().includes(query.toLowerCase())
+    )
+  }
+}
+
+// 员工选择变化
+const onEmployeeChange = async (employeeId: number) => {
+  if (employeeId) {
+    await getSalaryData(employeeId)
+  } else {
+    salaryData.value = []
+  }
+}
+
+// 获取员工薪资数据
+const getSalaryData = async (employeeId: number) => {
+  try {
+    loading.value = true
+    const response: ApiResponse<SalaryData[]> = await api.get(`/user/statistic/getWorkerSalaryData/${employeeId}`)
+    if (response.code === 0) {
+      salaryData.value = response.data
+      await nextTick()
+      initSalaryChart()
+    } else {
+      ElMessage.error(response.message || '获取薪资数据失败')
+      salaryData.value = []
+    }
+  } catch (error) {
+    console.error('获取薪资数据失败:', error)
+    ElMessage.error('获取薪资数据失败')
+    salaryData.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 初始化薪资图表
+const initSalaryChart = () => {
+  if (!salaryChartRef.value || salaryData.value.length === 0) return
   
-  // 薪资分布柱状图
-  if (salaryDistributionChartRef.value) {
-    const chart = echarts.init(salaryDistributionChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: ['5000以下', '5000-8000', '8000-12000', '12000-20000', '20000以上']
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '人数',
-          type: 'bar',
-          data: [
-            salaryStats.salaryDistribution.under5000,
-            salaryStats.salaryDistribution.salary5000to8000,
-            salaryStats.salaryDistribution.salary8000to12000,
-            salaryStats.salaryDistribution.salary12000to20000,
-            salaryStats.salaryDistribution.above20000
-          ],
-          itemStyle: {
-            color: '#409eff'
+  const chart = echarts.init(salaryChartRef.value)
+  
+  // 按时间排序数据
+  const sortedData = [...salaryData.value].sort((a, b) => 
+    new Date(a.settlementTime).getTime() - new Date(b.settlementTime).getTime()
+  )
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params: any) {
+        const data = params[0]
+        return `${data.axisValue}<br/>薪资: ¥${data.value}`
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: sortedData.map(item => item.settlementTime),
+      axisLabel: {
+        rotate: 45
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '薪资(元)',
+      axisLabel: {
+        formatter: '¥{value}'
+      }
+    },
+    series: [
+      {
+        name: '薪资',
+        type: 'line',
+        data: sortedData.map(item => item.salary),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: {
+          color: '#409eff',
+          width: 3
+        },
+        itemStyle: {
+          color: '#409eff'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: 'rgba(64, 158, 255, 0.3)'
+              },
+              {
+                offset: 1,
+                color: 'rgba(64, 158, 255, 0.1)'
+              }
+            ]
           }
         }
-      ]
-    }
-    chart.setOption(option)
+      }
+    ]
   }
   
-  // 平均薪资趋势折线图
-  if (averageSalaryTrendChartRef.value) {
-    const chart = echarts.init(averageSalaryTrendChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis'
-      },
-      legend: {
-        data: ['平均薪资', '最高薪资', '最低薪资']
-      },
-      xAxis: {
-        type: 'category',
-        data: salaryStats.averageSalaryTrend.map(item => item.month)
-      },
-      yAxis: {
-        type: 'value',
-        name: '薪资(元)'
-      },
-      series: [
-        {
-          name: '平均薪资',
-          type: 'line',
-          data: salaryStats.averageSalaryTrend.map(item => item.averageSalary),
-          smooth: true,
-          itemStyle: { color: '#409eff' }
-        },
-        {
-          name: '最高薪资',
-          type: 'line',
-          data: salaryStats.averageSalaryTrend.map(item => item.maxSalary),
-          smooth: true,
-          itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '最低薪资',
-          type: 'line',
-          data: salaryStats.averageSalaryTrend.map(item => item.minSalary),
-          smooth: true,
-          itemStyle: { color: '#e6a23c' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
+  chart.setOption(option)
   
-  // 部门薪资对比柱状图
-  if (departmentSalaryChartRef.value) {
-    const chart = echarts.init(departmentSalaryChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      legend: {
-        data: ['平均薪资', '最高薪资', '最低薪资']
-      },
-      xAxis: {
-        type: 'category',
-        data: salaryStats.departmentSalaryComparison.map(item => item.departmentName)
-      },
-      yAxis: {
-        type: 'value',
-        name: '薪资(元)'
-      },
-      series: [
-        {
-          name: '平均薪资',
-          type: 'bar',
-          data: salaryStats.departmentSalaryComparison.map(item => item.averageSalary),
-          itemStyle: { color: '#409eff' }
-        },
-        {
-          name: '最高薪资',
-          type: 'bar',
-          data: salaryStats.departmentSalaryComparison.map(item => item.maxSalary),
-          itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '最低薪资',
-          type: 'bar',
-          data: salaryStats.departmentSalaryComparison.map(item => item.minSalary),
-          itemStyle: { color: '#e6a23c' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 岗位薪资对比柱状图
-  if (jobSalaryChartRef.value) {
-    const chart = echarts.init(jobSalaryChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      legend: {
-        data: ['平均薪资', '最高薪资', '最低薪资']
-      },
-      xAxis: {
-        type: 'category',
-        data: salaryStats.jobSalaryComparison.map(item => item.jobName)
-      },
-      yAxis: {
-        type: 'value',
-        name: '薪资(元)'
-      },
-      series: [
-        {
-          name: '平均薪资',
-          type: 'bar',
-          data: salaryStats.jobSalaryComparison.map(item => item.averageSalary),
-          itemStyle: { color: '#409eff' }
-        },
-        {
-          name: '最高薪资',
-          type: 'bar',
-          data: salaryStats.jobSalaryComparison.map(item => item.maxSalary),
-          itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '最低薪资',
-          type: 'bar',
-          data: salaryStats.jobSalaryComparison.map(item => item.minSalary),
-          itemStyle: { color: '#e6a23c' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    chart.resize()
+  })
 }
+
+// 组件挂载
+onMounted(() => {
+  getAllEmployees()
+})
 </script>
 
 <style scoped>
@@ -348,8 +246,54 @@ const initCharts = () => {
 }
 
 .card-header {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
   color: #333;
+}
+
+.employee-selector {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.selector-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  line-height: 32px;
+}
+
+.chart-container {
+  margin-top: 20px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.salary-chart {
+  height: 400px;
+  width: 100%;
+}
+
+.no-data,
+.no-selection {
+  margin-top: 40px;
+  text-align: center;
+}
+
+:deep(.el-select) {
+  width: 100%;
+}
+
+:deep(.el-input__inner) {
+  height: 40px;
+  line-height: 40px;
 }
 </style>

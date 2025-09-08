@@ -17,27 +17,11 @@
         </div>
       </template>
       
-      <!-- 搜索表单 -->
-      <el-form :model="searchForm" inline class="search-form">
-        <el-form-item label="部门名称">
-          <el-input v-model="searchForm.name" placeholder="请输入部门名称" clearable @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
-            搜索
-          </el-button>
-          <el-button @click="handleReset">
-            <el-icon><Refresh /></el-icon>
-            重置
-          </el-button>
-        </el-form-item>
-      </el-form>
       
       <!-- 部门树形表格 -->
       <el-table
         v-loading="loading"
-        :data="filteredTableData"
+        :data="tableData"
         stripe
         border
         row-key="id"
@@ -153,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { departmentApi, workerApi } from '@/api'
@@ -167,11 +151,7 @@ const allDepartments = ref<Department[]>([])
 
 // 主管信息缓存
 const supervisorCache = ref<Record<number, string>>({})
-const supervisorLoading = ref<Set<number>>(new Set())
 
-const searchForm = reactive({
-  name: ''
-})
 
 // 扩展部门类型，添加层级和子部门信息
 interface ExtendedDepartment extends Department {
@@ -180,13 +160,6 @@ interface ExtendedDepartment extends Department {
   hasChildren?: boolean
 }
 
-// 计算属性：过滤后的表格数据
-const filteredTableData = computed(() => {
-  if (!searchForm.name) {
-    return tableData.value
-  }
-  return filterDepartments(tableData.value, searchForm.name)
-})
 
 // 悬浮窗相关状态
 const showAddDialog = ref(false)
@@ -248,62 +221,7 @@ const buildDepartmentTree = (departments: Department[]): ExtendedDepartment[] =>
   return rootDepartments
 }
 
-// 过滤部门数据
-const filterDepartments = (departments: ExtendedDepartment[], keyword: string): ExtendedDepartment[] => {
-  const result: ExtendedDepartment[] = []
-  
-  const filterRecursive = (depts: ExtendedDepartment[]): ExtendedDepartment[] => {
-    return depts.filter(dept => {
-      const matches = dept.name.toLowerCase().includes(keyword.toLowerCase())
-      const filteredChildren = dept.children ? filterRecursive(dept.children) : []
-      
-      if (matches || filteredChildren.length > 0) {
-        return {
-          ...dept,
-          children: filteredChildren
-        }
-      }
-      return false
-    })
-  }
-  
-  return filterRecursive(departments)
-}
 
-// 获取主管姓名 - 通过API获取
-const getSupervisorName = async (supervisorId: number): Promise<string> => {
-  // 如果缓存中已有，直接返回
-  if (supervisorCache.value[supervisorId]) {
-    return supervisorCache.value[supervisorId]
-  }
-  
-  // 如果正在加载中，返回加载状态
-  if (supervisorLoading.value.has(supervisorId)) {
-    return '加载中...'
-  }
-  
-  try {
-    // 标记为加载中
-    supervisorLoading.value.add(supervisorId)
-    
-    // 调用API获取员工信息
-    const response = await workerApi.getExact(supervisorId)
-    
-    if (response.code === 0 && response.data && response.data.name) {
-      // 缓存结果
-      supervisorCache.value[supervisorId] = response.data.name
-      return response.data.name
-    } else {
-      return `员工${supervisorId}`
-    }
-  } catch (error) {
-    console.error('获取主管信息失败:', error)
-    return `员工${supervisorId}`
-  } finally {
-    // 移除加载状态
-    supervisorLoading.value.delete(supervisorId)
-  }
-}
 
 // 同步获取主管姓名（用于模板显示）
 const getSupervisorNameSync = (supervisorId: number): string => {
@@ -376,17 +294,6 @@ const fetchData = async () => {
   }
 }
 
-// 搜索
-const handleSearch = () => {
-  // 搜索功能由计算属性 filteredTableData 自动处理
-}
-
-// 重置
-const handleReset = () => {
-  Object.assign(searchForm, {
-    name: ''
-  })
-}
 
 // 添加部门提交
 const handleAddSubmit = async () => {
@@ -479,9 +386,6 @@ onMounted(() => {
   gap: 10px;
 }
 
-.search-form {
-  margin-bottom: 20px;
-}
 
 .department-tree-table {
   margin-top: 20px;

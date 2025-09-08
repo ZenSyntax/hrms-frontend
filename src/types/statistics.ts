@@ -1,57 +1,49 @@
 // 统计数据VO对象
 export interface StatisticsOverviewVO {
-  totalEmployees: number
-  activeEmployees: number
-  totalJobs: number
-  totalDepartments: number
-  totalSalary: number
-  averageSalary: number
-  monthlyGrowth: number
+  panelData: {
+    workerAmount: number      // 员工总数
+    employedAmount: number    // 在职员工总数
+    jobAmount: number         // 岗位数
+    departmentAmount: number  // 部门总数
+    workerChange: number      // 本月员工总数较上月的变化
+  }
+  workerGrowthTrend: number[][]  // 每月员工数量变化趋势 [入职人数, 离职人数]
+  salaryDistribution: {
+    more: number    // 薪资在20000以上的员工总数
+    high: number    // 薪资在12000到20000之间的员工总数
+    middle: number  // 薪资在8000到12000之间的员工总数
+    low: number     // 薪资在5000到8000之间的员工总数
+    few: number     // 薪资在5000以下的员工总数
+  }
+  incomeExpenseTrend: number[][]  // 每月收支金额变化趋势 [收入, 支出]
 }
 
 // 员工统计VO对象
 export interface EmployeeStatisticsVO {
   // 员工类型分布
-  employeeTypeDistribution: {
-    formal: number      // 正式工数量
+  workerType: {
+    permanent: number   // 正式工数量
     temporary: number   // 临时工数量
     intern: number      // 实习生数量
   }
   
-  // 学历分布
-  educationDistribution: {
-    bachelorAbove: number  // 本科以上
-    bachelor: number       // 本科
-    college: number        // 大专
-    highSchool: number     // 高中
-    belowHighSchool: number // 初中及以下
-  }
-  
   // 性别分布
-  genderDistribution: {
+  workerGender: {
     male: number
     female: number
   }
   
   // 年龄分布
-  ageDistribution: {
-    under25: number
-    age25to30: number
-    age30to40: number
-    age40to50: number
-    above50: number
+  workerAge: {
+    young: number       // 年龄小于35岁的员工数量
+    middle: number      // 年龄小于50大于35的员工数量
+    old: number         // 年龄大于50的员工数量
   }
   
-  // 入职趋势（最近12个月）
-  onboardingTrend: Array<{
-    month: string
-    count: number
-  }>
-  
-  // 离职趋势（最近12个月）
-  departureTrend: Array<{
-    month: string
-    count: number
+  // 部门员工分布
+  departmentWorkers: Array<{
+    departmentName: string
+    workerAmount: number
   }>
 }
 
@@ -99,40 +91,6 @@ export interface SalaryStatisticsVO {
   }
 }
 
-// 部门统计VO对象
-export interface DepartmentStatisticsVO {
-  // 部门员工数量分布
-  departmentEmployeeDistribution: Array<{
-    departmentName: string
-    employeeCount: number
-    percentage: number
-  }>
-  
-  // 部门薪资统计
-  departmentSalaryStats: Array<{
-    departmentName: string
-    totalSalary: number
-    averageSalary: number
-    salaryBudget: number
-    budgetUtilization: number
-  }>
-  
-  // 部门绩效统计
-  departmentPerformanceStats: Array<{
-    departmentName: string
-    performanceScore: number
-    targetCompletion: number
-    efficiency: number
-  }>
-  
-  // 部门人员流动统计
-  departmentTurnoverStats: Array<{
-    departmentName: string
-    onboardingCount: number
-    departureCount: number
-    turnoverRate: number
-  }>
-}
 
 // 培训统计VO对象
 export interface TrainingStatisticsVO {

@@ -200,62 +200,6 @@ GET /statistics/salary
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|成功|SalaryStatisticsVO|
 
-## GET 获取部门统计
-
-GET /statistics/department
-
-获取部门相关的统计数据，包括部门员工分布、部门薪资统计、部门绩效统计、部门人员流动统计等。
-
-> 返回示例
-
-> 200 Response
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "departmentEmployeeDistribution": [
-      {
-        "departmentName": "技术部",
-        "employeeCount": 45,
-        "percentage": 28.8
-      }
-    ],
-    "departmentSalaryStats": [
-      {
-        "departmentName": "技术部",
-        "totalSalary": 540000,
-        "averageSalary": 12000,
-        "salaryBudget": 600000,
-        "budgetUtilization": 90.0
-      }
-    ],
-    "departmentPerformanceStats": [
-      {
-        "departmentName": "技术部",
-        "performanceScore": 85.5,
-        "targetCompletion": 92.0,
-        "efficiency": 88.0
-      }
-    ],
-    "departmentTurnoverStats": [
-      {
-        "departmentName": "技术部",
-        "onboardingCount": 8,
-        "departureCount": 3,
-        "turnoverRate": 6.7
-      }
-    ]
-  }
-}
-```
-
-### 返回结果
-
-|状态码|状态码含义|说明|数据模型|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|成功|DepartmentStatisticsVO|
 
 ## GET 获取培训统计
 
@@ -613,74 +557,6 @@ GET /statistics/payment
 |» monthlyGrowth|number|true|none||月度增长率(%)|
 |» yearlyGrowth|number|true|none||年度增长率(%)|
 
-<h2 id="tocS_DepartmentStatisticsVO">DepartmentStatisticsVO</h2>
-
-<a id="schemadepartmentstatisticsvo"></a>
-<a id="schema_DepartmentStatisticsVO"></a>
-<a id="tocSdepartmentstatisticsvo"></a>
-<a id="tocsdepartmentstatisticsvo"></a>
-
-```json
-{
-  "departmentEmployeeDistribution": [
-    {
-      "departmentName": "技术部",
-      "employeeCount": 45,
-      "percentage": 28.8
-    }
-  ],
-  "departmentSalaryStats": [
-    {
-      "departmentName": "技术部",
-      "totalSalary": 540000,
-      "averageSalary": 12000,
-      "salaryBudget": 600000,
-      "budgetUtilization": 90.0
-    }
-  ],
-  "departmentPerformanceStats": [
-    {
-      "departmentName": "技术部",
-      "performanceScore": 85.5,
-      "targetCompletion": 92.0,
-      "efficiency": 88.0
-    }
-  ],
-  "departmentTurnoverStats": [
-    {
-      "departmentName": "技术部",
-      "onboardingCount": 8,
-      "departureCount": 3,
-      "turnoverRate": 6.7
-    }
-  ]
-}
-```
-
-### 属性
-
-|名称|类型|必选|约束|中文名|说明|
-|---|---|---|---|---|---|
-|departmentEmployeeDistribution|[object]|true|none||部门员工分布|
-|» departmentName|string|true|none||部门名称|
-|» employeeCount|integer|true|none||员工数量|
-|» percentage|number|true|none||占比(%)|
-|departmentSalaryStats|[object]|true|none||部门薪资统计|
-|» departmentName|string|true|none||部门名称|
-|» totalSalary|integer|true|none||薪资总额|
-|» averageSalary|integer|true|none||平均薪资|
-|» salaryBudget|integer|true|none||薪资预算|
-|» budgetUtilization|number|true|none||预算利用率(%)|
-|departmentPerformanceStats|[object]|true|none||部门绩效统计|
-|» departmentName|string|true|none||部门名称|
-|» performanceScore|number|true|none||绩效得分|
-|» targetCompletion|number|true|none||目标完成率(%)|
-|» efficiency|number|true|none||效率(%)|
-|departmentTurnoverStats|[object]|true|none||部门人员流动统计|
-|» departmentName|string|true|none||部门名称|
-|» onboardingCount|integer|true|none||入职人数|
-|» departureCount|integer|true|none||离职人数|
-|» turnoverRate|number|true|none||流动率(%)|
 
 <h2 id="tocS_TrainingStatisticsVO">TrainingStatisticsVO</h2>
 

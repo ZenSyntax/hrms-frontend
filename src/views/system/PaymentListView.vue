@@ -4,26 +4,25 @@
       <template #header>
         <div class="card-header">
           <span>收支管理</span>
-          <div class="header-actions">
-            <el-button type="primary" @click="handleAdd">
-              <el-icon><Plus /></el-icon>
-              添加收支
-            </el-button>
-          </div>
+          <el-button 
+            type="primary" 
+            @click="handleEditToday"
+            :disabled="!hasTodayData"
+          >
+            <el-icon><Edit /></el-icon>
+            修改今日收支
+          </el-button>
         </div>
       </template>
       
       <!-- 搜索表单 -->
       <el-form :model="searchForm" inline class="search-form">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
+        <el-form-item label="关键字">
+          <el-input
+            v-model="searchForm.name"
+            placeholder="请输入搜索关键字"
+            clearable
+            style="width: 200px"
           />
         </el-form-item>
         <el-form-item>
@@ -44,49 +43,43 @@
         :data="tableData"
         stripe
         border
+        style="width: 100%"
       >
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="profit" label="收益" width="120">
+        <el-table-column prop="profit" label="收益" min-width="120">
           <template #default="{ row }">
             <span class="positive">+¥{{ row.profit?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="tax" label="税收" width="120">
+        <el-table-column prop="tax" label="税收" min-width="100">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.tax?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="socialSecurity" label="社保" width="120">
+        <el-table-column prop="socialSecurity" label="社保" min-width="100">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.socialSecurity?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="water" label="水费" width="120">
+        <el-table-column prop="water" label="水费" min-width="100">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.water?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="electricity" label="电费" width="120">
+        <el-table-column prop="electricity" label="电费" min-width="100">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.electricity?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="salary" label="薪资" width="120">
+        <el-table-column prop="salary" label="薪资" min-width="100">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.salary?.toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="outlay" label="总支出" width="120">
+        <el-table-column prop="outlay" label="总支出" min-width="120">
           <template #default="{ row }">
             <span class="negative">-¥{{ row.outlay?.toLocaleString() }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -105,98 +98,100 @@
       </div>
     </el-card>
     
-    <!-- 编辑收支对话框 -->
-    <el-dialog v-model="editDialogVisible" title="编辑收支信息" width="600px">
-      <el-form :model="editForm" label-width="120px">
-        <el-form-item label="日期">
-          <el-date-picker
-            v-model="editForm.date"
-            type="date"
-            placeholder="请选择日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-            disabled
-          />
-        </el-form-item>
-        <el-form-item label="收益">
+    <!-- 修改今日收支信息对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="修改今日收支信息"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="净收益" prop="profit">
           <el-input-number
             v-model="editForm.profit"
             :min="0"
             :precision="2"
-            placeholder="请输入收益"
             style="width: 100%"
+            placeholder="请输入净收益"
           />
         </el-form-item>
-        <el-form-item label="税收">
+        <el-form-item label="缴税支出" prop="tax">
           <el-input-number
             v-model="editForm.tax"
             :min="0"
             :precision="2"
-            placeholder="请输入税收"
             style="width: 100%"
+            placeholder="请输入缴税支出"
           />
         </el-form-item>
-        <el-form-item label="社保">
+        <el-form-item label="社保支出" prop="socialSecurity">
           <el-input-number
             v-model="editForm.socialSecurity"
             :min="0"
             :precision="2"
-            placeholder="请输入社保"
             style="width: 100%"
+            placeholder="请输入社保支出"
           />
         </el-form-item>
-        <el-form-item label="水费">
+        <el-form-item label="水费" prop="water">
           <el-input-number
             v-model="editForm.water"
             :min="0"
             :precision="2"
-            placeholder="请输入水费"
             style="width: 100%"
+            placeholder="请输入水费"
           />
         </el-form-item>
-        <el-form-item label="电费">
+        <el-form-item label="电费" prop="electricity">
           <el-input-number
             v-model="editForm.electricity"
             :min="0"
             :precision="2"
-            placeholder="请输入电费"
             style="width: 100%"
+            placeholder="请输入电费"
           />
         </el-form-item>
-        <el-form-item label="其他支出">
+        <el-form-item label="总支出" prop="outlay">
           <el-input-number
             v-model="editForm.outlay"
             :min="0"
             :precision="2"
-            placeholder="请输入其他支出"
             style="width: 100%"
+            placeholder="请输入总支出"
           />
         </el-form-item>
       </el-form>
+      
       <template #footer>
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleConfirmEdit" :loading="editLoading">
-          确定
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSaveEdit" :loading="editLoading">
+            保存
+          </el-button>
+        </div>
       </template>
     </el-dialog>
+    
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Edit } from '@element-plus/icons-vue'
 import { paymentApi } from '@/api'
 import type { Payment } from '@/types'
 
 const loading = ref(false)
-const editLoading = ref(false)
-const editDialogVisible = ref(false)
 const tableData = ref<Payment[]>([])
-const editForm = reactive<Partial<Payment>>({})
 
 const searchForm = reactive({
-  dateRange: []
+  name: ''
 })
 
 const pagination = reactive({
@@ -205,11 +200,66 @@ const pagination = reactive({
   total: 0
 })
 
+// 编辑相关状态
+const editDialogVisible = ref(false)
+const editLoading = ref(false)
+const editFormRef = ref()
+
+const editForm = reactive({
+  id: 0,
+  profit: 0,
+  tax: 0,
+  socialSecurity: 0,
+  water: 0,
+  electricity: 0,
+  outlay: 0
+})
+
+// 表单验证规则
+const editFormRules = {
+  profit: [
+    { required: true, message: '请输入净收益', trigger: 'blur' },
+    { type: 'number', min: 0, message: '净收益不能小于0', trigger: 'blur' }
+  ],
+  tax: [
+    { required: true, message: '请输入缴税支出', trigger: 'blur' },
+    { type: 'number', min: 0, message: '缴税支出不能小于0', trigger: 'blur' }
+  ],
+  socialSecurity: [
+    { required: true, message: '请输入社保支出', trigger: 'blur' },
+    { type: 'number', min: 0, message: '社保支出不能小于0', trigger: 'blur' }
+  ],
+  water: [
+    { required: true, message: '请输入水费', trigger: 'blur' },
+    { type: 'number', min: 0, message: '水费不能小于0', trigger: 'blur' }
+  ],
+  electricity: [
+    { required: true, message: '请输入电费', trigger: 'blur' },
+    { type: 'number', min: 0, message: '电费不能小于0', trigger: 'blur' }
+  ],
+  outlay: [
+    { required: true, message: '请输入总支出', trigger: 'blur' },
+    { type: 'number', min: 0, message: '总支出不能小于0', trigger: 'blur' }
+  ]
+}
+
+// 检查是否有今日数据（由于后端按日期倒序排序，第一条数据就是最新的）
+const hasTodayData = computed(() => {
+  return tableData.value.length > 0
+})
+
+// 获取今日数据（第一条数据）
+const getTodayData = () => {
+  return tableData.value.length > 0 ? tableData.value[0] : null
+}
+
 // 获取收支列表
 const fetchData = async () => {
   loading.value = true
   try {
     const params = {
+      id: undefined,
+      name: searchForm.name || undefined,
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize
     }
@@ -225,36 +275,36 @@ const fetchData = async () => {
     tableData.value = [
       {
         id: 1,
-        profit: 250000,
-        tax: 25000,
-        socialSecurity: 15000,
-        water: 2000,
-        electricity: 3000,
-        salary: 120000,
-        outlay: 165000,
-        date: '2024-01-15'
+        profit: 15000.0,
+        tax: 1200.0,
+        socialSecurity: 2500.0,
+        water: 300.5,
+        electricity: 800.2,
+        salary: 0.0,
+        outlay: 4800.7,
+        date: '2025-08-01'
       },
       {
         id: 2,
-        profit: 280000,
-        tax: 28000,
-        socialSecurity: 16000,
-        water: 2200,
-        electricity: 3200,
-        salary: 125000,
-        outlay: 172400,
-        date: '2024-01-14'
+        profit: 18000.0,
+        tax: 1500.0,
+        socialSecurity: 2500.0,
+        water: 310.0,
+        electricity: 820.5,
+        salary: 0.0,
+        outlay: 5130.5,
+        date: '2025-08-02'
       },
       {
         id: 3,
-        profit: 220000,
-        tax: 22000,
-        socialSecurity: 14000,
-        water: 1800,
-        electricity: 2800,
-        salary: 115000,
-        outlay: 158600,
-        date: '2024-01-13'
+        profit: 17500.0,
+        tax: 1450.0,
+        socialSecurity: 2500.0,
+        water: 290.8,
+        electricity: 790.0,
+        salary: 0.0,
+        outlay: 4930.8,
+        date: '2025-08-03'
       }
     ]
     pagination.total = tableData.value.length
@@ -272,52 +322,10 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   Object.assign(searchForm, {
-    dateRange: []
+    name: ''
   })
   pagination.pageNum = 1
   fetchData()
-}
-
-// 添加收支
-const handleAdd = async () => {
-  try {
-    const response = await paymentApi.add()
-    if (response.code === 0) {
-      ElMessage.success('添加收支信息成功')
-      fetchData()
-    } else {
-      ElMessage.error(response.message || '添加失败')
-    }
-  } catch (error) {
-    console.error('添加收支信息失败:', error)
-    ElMessage.error('添加失败')
-  }
-}
-
-// 编辑收支
-const handleEdit = (row: Payment) => {
-  Object.assign(editForm, row)
-  editDialogVisible.value = true
-}
-
-// 确认编辑
-const handleConfirmEdit = async () => {
-  editLoading.value = true
-  try {
-    const response = await paymentApi.update(editForm as Payment & { id: number })
-    if (response.code === 0) {
-      ElMessage.success('编辑成功')
-      editDialogVisible.value = false
-      fetchData()
-    } else {
-      ElMessage.error(response.message || '编辑失败')
-    }
-  } catch (error) {
-    console.error('编辑失败:', error)
-    ElMessage.error('编辑失败')
-  } finally {
-    editLoading.value = false
-  }
 }
 
 // 分页变化
@@ -330,6 +338,57 @@ const handleSizeChange = (size: number) => {
 const handleCurrentChange = (page: number) => {
   pagination.pageNum = page
   fetchData()
+}
+
+// 处理编辑今日收支
+const handleEditToday = () => {
+  const todayData = getTodayData()
+  if (!todayData) {
+    ElMessage.warning('暂无收支数据')
+    return
+  }
+  
+  // 回显数据
+  Object.assign(editForm, {
+    id: todayData.id,
+    profit: todayData.profit,
+    tax: todayData.tax,
+    socialSecurity: todayData.socialSecurity,
+    water: todayData.water,
+    electricity: todayData.electricity,
+    outlay: todayData.outlay
+  })
+  
+  editDialogVisible.value = true
+}
+
+// 保存编辑
+const handleSaveEdit = async () => {
+  if (!editFormRef.value) return
+  
+  try {
+    await editFormRef.value.validate()
+  } catch (error) {
+    return
+  }
+  
+  editLoading.value = true
+  try {
+    const response = await paymentApi.update(editForm)
+    if (response.code === 0) {
+      ElMessage.success('修改成功')
+      editDialogVisible.value = false
+      // 重新获取数据
+      await fetchData()
+    } else {
+      ElMessage.error(response.message || '修改失败')
+    }
+  } catch (error) {
+    console.error('修改收支信息失败:', error)
+    ElMessage.error('修改失败，请重试')
+  } finally {
+    editLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -346,11 +405,6 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
 }
 
 .search-form {

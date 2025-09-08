@@ -13,10 +13,12 @@
             <div class="card-info">
               <div class="card-value">{{ card.value }}</div>
               <div class="card-title">{{ card.title }}</div>
-              <div class="card-trend" :class="card.trend > 0 ? 'positive' : 'negative'">
-                <el-icon><component :is="card.trend > 0 ? 'TrendCharts' : 'Bottom'" /></el-icon>
-                {{ Math.abs(card.trend) }}%
+              <!-- 只有员工总数显示变化趋势，其他卡片显示占位元素保持高度一致 -->
+              <div v-if="card.title === '员工总数'" class="card-trend" :class="card.change > 0 ? 'positive' : 'negative'">
+                <el-icon><component :is="card.change > 0 ? 'TrendCharts' : 'Bottom'" /></el-icon>
+                {{ card.change > 0 ? '+' : '' }}{{ card.change }}
               </div>
+              <div v-else class="card-trend-placeholder"></div>
             </div>
           </div>
         </el-card>
@@ -32,7 +34,7 @@
               <span>员工增长趋势</span>
             </div>
           </template>
-          <div ref="employeeGrowthChartRef" style="height: 300px;"></div>
+          <div ref="employeeGrowthChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
       
@@ -44,48 +46,11 @@
               <span>薪资分布</span>
             </div>
           </template>
-          <div ref="salaryDistributionChartRef" style="height: 300px;"></div>
+          <div ref="salaryDistributionChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
     </el-row>
     
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <!-- 部门人员分布 -->
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>部门人员分布</span>
-            </div>
-          </template>
-          <div ref="departmentDistributionChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-      
-      <!-- 培训完成情况 -->
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>培训完成情况</span>
-            </div>
-          </template>
-          <div ref="trainingProgressChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-      
-      <!-- 系统使用情况 -->
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>系统使用情况</span>
-            </div>
-          </template>
-          <div ref="systemUsageChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
     
     <el-row :gutter="20" style="margin-top: 20px;">
       <!-- 收支趋势 -->
@@ -115,39 +80,36 @@ import {
 
 const employeeGrowthChartRef = ref<HTMLElement>()
 const salaryDistributionChartRef = ref<HTMLElement>()
-const departmentDistributionChartRef = ref<HTMLElement>()
-const trainingProgressChartRef = ref<HTMLElement>()
-const systemUsageChartRef = ref<HTMLElement>()
 const paymentTrendChartRef = ref<HTMLElement>()
 
 const overviewCards = ref([
   {
-    title: '总员工数',
-    value: 156,
+    title: '员工总数',
+    value: 0,
     icon: User,
     color: '#409eff',
-    trend: 5.2
+    change: 0
   },
   {
     title: '在职员工',
-    value: 142,
+    value: 0,
     icon: User,
     color: '#67c23a',
-    trend: 3.8
+    change: 0
   },
   {
     title: '岗位数量',
-    value: 28,
+    value: 0,
     icon: Briefcase,
     color: '#e6a23c',
-    trend: 2.1
+    change: 0
   },
   {
     title: '部门数量',
-    value: 12,
+    value: 0,
     icon: OfficeBuilding,
     color: '#f56c6c',
-    trend: 0
+    change: 0
   }
 ])
 
@@ -158,22 +120,79 @@ onMounted(async () => {
 
 const loadData = async () => {
   try {
+    console.log('开始获取总览数据...')
     const overviewData = await statisticsApi.getOverview()
+    console.log('获取到的总览数据:', overviewData)
+    
     // 更新卡片数据
-    overviewCards.value[0].value = overviewData.totalEmployees
-    overviewCards.value[1].value = overviewData.activeEmployees
-    overviewCards.value[2].value = overviewData.totalJobs
-    overviewCards.value[3].value = overviewData.totalDepartments
+    if (overviewData && overviewData.panelData) {
+      console.log('更新卡片数据:', overviewData.panelData)
+      overviewCards.value[0].value = overviewData.panelData.workerAmount
+      overviewCards.value[0].change = overviewData.panelData.workerChange
+      overviewCards.value[1].value = overviewData.panelData.employedAmount
+      overviewCards.value[2].value = overviewData.panelData.jobAmount
+      overviewCards.value[3].value = overviewData.panelData.departmentAmount
+      console.log('卡片数据更新完成:', overviewCards.value)
+    } else {
+      console.warn('总览数据格式不正确:', overviewData)
+    }
+    
+    // 更新图表数据
+    updateCharts(overviewData)
   } catch (error) {
     console.error('加载总览数据失败:', error)
     // 使用模拟数据
+    const mockData = {
+      panelData: {
+        workerAmount: 25,
+        employedAmount: 22,
+        jobAmount: 19,
+        departmentAmount: 16,
+        workerChange: 1
+      },
+      workerGrowthTrend: [
+        [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [24, 2], [1, 1]
+      ],
+      salaryDistribution: {
+        more: 5,
+        high: 9,
+        middle: 4,
+        low: 4,
+        few: 3
+      },
+      incomeExpenseTrend: [
+        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [472711.5, 652700.0], [94764.0, 242500.0]
+      ]
+    }
+    
+    // 使用模拟数据更新卡片
+    console.log('使用模拟数据更新卡片:', mockData.panelData)
+    overviewCards.value[0].value = mockData.panelData.workerAmount
+    overviewCards.value[0].change = mockData.panelData.workerChange
+    overviewCards.value[1].value = mockData.panelData.employedAmount
+    overviewCards.value[1].change = 0 // 在职员工变化暂时设为0，因为接口没有提供
+    overviewCards.value[2].value = mockData.panelData.jobAmount
+    overviewCards.value[2].change = 0 // 岗位数量变化暂时设为0，因为接口没有提供
+    overviewCards.value[3].value = mockData.panelData.departmentAmount
+    overviewCards.value[3].change = 0 // 部门数量变化暂时设为0，因为接口没有提供
+    console.log('模拟数据卡片更新完成:', overviewCards.value)
+    
+    // 使用模拟数据更新图表
+    updateCharts(mockData)
   }
 }
 
-const initCharts = () => {
+// 更新图表数据
+const updateCharts = (overviewData: any) => {
   // 员工增长趋势
   if (employeeGrowthChartRef.value) {
     const chart = echarts.init(employeeGrowthChartRef.value)
+    
+    // 处理员工增长趋势数据
+    const onboardingData = overviewData.workerGrowthTrend.map((item: number[]) => item[0])
+    const departureData = overviewData.workerGrowthTrend.map((item: number[]) => item[1])
+    const netGrowthData = overviewData.workerGrowthTrend.map((item: number[]) => item[0] - item[1])
+    
     const option = {
       tooltip: {
         trigger: 'axis'
@@ -192,21 +211,21 @@ const initCharts = () => {
         {
           name: '入职人数',
           type: 'line',
-          data: [8, 12, 15, 10, 18, 22, 16, 20, 14, 11, 9, 13],
+          data: onboardingData,
           smooth: true,
           itemStyle: { color: '#67c23a' }
         },
         {
           name: '离职人数',
           type: 'line',
-          data: [3, 5, 7, 4, 6, 8, 5, 9, 4, 3, 2, 4],
+          data: departureData,
           smooth: true,
           itemStyle: { color: '#f56c6c' }
         },
         {
           name: '净增长',
           type: 'bar',
-          data: [5, 7, 8, 6, 12, 14, 11, 11, 10, 8, 7, 9],
+          data: netGrowthData,
           itemStyle: { color: '#409eff' }
         }
       ]
@@ -232,11 +251,11 @@ const initCharts = () => {
           type: 'pie',
           radius: '50%',
           data: [
-            { value: 15, name: '5000以下' },
-            { value: 45, name: '5000-8000' },
-            { value: 60, name: '8000-12000' },
-            { value: 25, name: '12000-20000' },
-            { value: 8, name: '20000以上' }
+            { value: overviewData.salaryDistribution.few, name: '5000以下' },
+            { value: overviewData.salaryDistribution.low, name: '5000-8000' },
+            { value: overviewData.salaryDistribution.middle, name: '8000-12000' },
+            { value: overviewData.salaryDistribution.high, name: '12000-20000' },
+            { value: overviewData.salaryDistribution.more, name: '20000以上' }
           ],
           emphasis: {
             itemStyle: {
@@ -251,94 +270,29 @@ const initCharts = () => {
     chart.setOption(option)
   }
   
-  // 部门人员分布
-  if (departmentDistributionChartRef.value) {
-    const chart = echarts.init(departmentDistributionChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: ['技术部', '市场部', '人事部', '财务部', '运营部', '客服部']
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '员工数量',
-          type: 'bar',
-          data: [45, 28, 15, 12, 25, 18],
-          itemStyle: {
-            color: '#409eff'
-          }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 培训完成情况
-  if (trainingProgressChartRef.value) {
-    const chart = echarts.init(trainingProgressChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
-      },
-      series: [
-        {
-          name: '培训完成情况',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          data: [
-            { value: 120, name: '已完成' },
-            { value: 30, name: '进行中' },
-            { value: 6, name: '未开始' }
-          ]
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 系统使用情况
-  if (systemUsageChartRef.value) {
-    const chart = echarts.init(systemUsageChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis'
-      },
-      xAxis: {
-        type: 'category',
-        data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '活跃用户',
-          type: 'line',
-          data: [45, 52, 48, 55, 60, 35, 25],
-          smooth: true,
-          itemStyle: { color: '#409eff' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
   // 收支趋势
   if (paymentTrendChartRef.value) {
     const chart = echarts.init(paymentTrendChartRef.value)
+    
+    // 处理收支趋势数据
+    const incomeData = overviewData.incomeExpenseTrend.map((item: number[]) => item[0])
+    const expenseData = overviewData.incomeExpenseTrend.map((item: number[]) => item[1])
+    const profitData = overviewData.incomeExpenseTrend.map((item: number[]) => item[0] - item[1])
+    
     const option = {
       tooltip: {
-        trigger: 'axis'
+        trigger: 'axis',
+        formatter: function(params: any) {
+          let result = params[0].name + '<br/>'
+          params.forEach((param: any) => {
+            if (param.seriesName === '收入' || param.seriesName === '支出') {
+              result += param.marker + param.seriesName + ': ' + (param.value / 10000).toFixed(2) + '万元<br/>'
+            } else {
+              result += param.marker + param.seriesName + ': ' + (param.value / 10000).toFixed(2) + '万元<br/>'
+            }
+          })
+          return result
+        }
       },
       legend: {
         data: ['收入', '支出', '净利润']
@@ -349,33 +303,58 @@ const initCharts = () => {
       },
       yAxis: {
         type: 'value',
-        name: '金额(万元)'
+        name: '金额(万元)',
+        axisLabel: {
+          formatter: function(value: number) {
+            return (value / 10000).toFixed(0)
+          }
+        }
       },
       series: [
         {
           name: '收入',
           type: 'line',
-          data: [20, 22, 25, 23, 28, 30, 27, 32, 29, 26, 24, 31],
+          data: incomeData,
           smooth: true,
           itemStyle: { color: '#67c23a' }
         },
         {
           name: '支出',
           type: 'line',
-          data: [15, 16, 18, 17, 20, 22, 19, 24, 21, 18, 16, 23],
+          data: expenseData,
           smooth: true,
           itemStyle: { color: '#f56c6c' }
         },
         {
           name: '净利润',
           type: 'bar',
-          data: [5, 6, 7, 6, 8, 8, 8, 8, 8, 8, 8, 8],
+          data: profitData,
           itemStyle: { color: '#409eff' }
         }
       ]
     }
     chart.setOption(option)
   }
+}
+
+const initCharts = () => {
+  // 初始化图表（使用模拟数据）
+  const mockData = {
+    workerGrowthTrend: [
+      [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [24, 2], [1, 1]
+    ],
+    salaryDistribution: {
+      more: 5,
+      high: 9,
+      middle: 4,
+      low: 4,
+      few: 3
+    },
+    incomeExpenseTrend: [
+      [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [472711.5, 652700.0], [94764.0, 242500.0]
+    ]
+  }
+  updateCharts(mockData)
 }
 </script>
 
@@ -426,6 +405,8 @@ const initCharts = () => {
   display: flex;
   align-items: center;
   gap: 4px;
+  height: 20px; /* 设置固定高度 */
+  line-height: 20px; /* 确保行高与高度一致 */
 }
 
 .card-trend.positive {
@@ -434,6 +415,11 @@ const initCharts = () => {
 
 .card-trend.negative {
   color: #f56c6c;
+}
+
+.card-trend-placeholder {
+  height: 20px; /* 与card-trend相同的高度 */
+  line-height: 20px; /* 确保行高与高度一致 */
 }
 
 .card-header {

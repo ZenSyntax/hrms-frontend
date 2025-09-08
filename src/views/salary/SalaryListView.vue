@@ -39,10 +39,11 @@
         :data="tableData"
         stripe
         border
+        style="width: 100%"
       >
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="workerName" label="员工姓名" width="120" />
-        <el-table-column prop="jobName" label="岗位" width="120" />
+        <el-table-column prop="workerName" label="员工姓名" min-width="100" />
+        <el-table-column prop="jobName" label="岗位" min-width="100" />
         <el-table-column prop="settlementTime" label="结算时间" width="120" />
         <el-table-column prop="cycle" label="结算周期" width="100">
           <template #default="{ row }">
@@ -511,7 +512,7 @@ const fetchData = async () => {
     }
     
     if (response.code === 0) {
-      const salaryItems = response.data.items || response.data.list || []
+      const salaryItems = response.data.items || []
       
       // 为每个薪资条添加岗位名称、员工姓名和基础薪资
       const enrichedData = await Promise.all(
@@ -613,7 +614,7 @@ const handleAddSubmit = async () => {
     const submitData = {
       jobId: addForm.jobId,
       workerId: addForm.workerId,
-      settlementTime: addForm.settlementTime || null, // 可以为null，后端会自动设置
+      settlementTime: addForm.settlementTime || '', // 空字符串，后端会自动设置
       cycle: addForm.cycle,
       salaryOffset: addForm.salaryOffset
     }
@@ -672,7 +673,8 @@ const handleEditSubmit = async () => {
       workerId: editForm.workerId,
       settlementTime: editForm.settlementTime,
       cycle: editForm.cycle,
-      salaryOffset: editForm.salaryOffset
+      salaryOffset: editForm.salaryOffset,
+      salary: editForm.salary
     }
     
     const response = await salaryApi.update(submitData)

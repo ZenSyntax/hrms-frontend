@@ -1,7 +1,7 @@
 <template>
   <div class="employee-statistics">
     <el-row :gutter="20">
-      <!-- 员工类型分布 -->
+      <!-- 员工类型分布 - 环形饼图 -->
       <el-col :span="12">
         <el-card>
           <template #header>
@@ -9,83 +9,45 @@
               <span>员工类型分布</span>
             </div>
           </template>
-          <div ref="employeeTypeChartRef" style="height: 300px;"></div>
+          <div ref="employeeTypeChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
       
-      <!-- 学历分布 -->
+      <!-- 性别分布 - 玫瑰图 -->
       <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>学历分布</span>
-            </div>
-          </template>
-          <div ref="educationChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <!-- 性别分布 -->
-      <el-col :span="8">
         <el-card>
           <template #header>
             <div class="card-header">
               <span>性别分布</span>
             </div>
           </template>
-          <div ref="genderChartRef" style="height: 250px;"></div>
+          <div ref="genderChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
-      
-      <!-- 年龄分布 -->
-      <el-col :span="8">
+    </el-row>
+    
+    <el-row :gutter="20" style="margin-top: 20px;">
+      <!-- 年龄分布 - 柱状图 -->
+      <el-col :span="12">
         <el-card>
           <template #header>
             <div class="card-header">
               <span>年龄分布</span>
             </div>
           </template>
-          <div ref="ageChartRef" style="height: 250px;"></div>
+          <div ref="ageChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
       
-      <!-- 部门分布 -->
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>部门分布</span>
-            </div>
-          </template>
-          <div ref="departmentChartRef" style="height: 250px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <!-- 入职趋势 -->
+      <!-- 部门分布 - 横向柱状图 -->
       <el-col :span="12">
         <el-card>
           <template #header>
             <div class="card-header">
-              <span>入职趋势</span>
+              <span>部门员工分布</span>
             </div>
           </template>
-          <div ref="onboardingTrendChartRef" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-      
-      <!-- 离职趋势 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>离职趋势</span>
-            </div>
-          </template>
-          <div ref="departureTrendChartRef" style="height: 300px;"></div>
+          <div ref="departmentChartRef" style="height: 350px;"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -99,106 +61,135 @@ import { statisticsApi } from '@/api/statistics'
 import type { EmployeeStatisticsVO } from '@/types/statistics'
 
 const employeeTypeChartRef = ref<HTMLElement>()
-const educationChartRef = ref<HTMLElement>()
 const genderChartRef = ref<HTMLElement>()
 const ageChartRef = ref<HTMLElement>()
 const departmentChartRef = ref<HTMLElement>()
-const onboardingTrendChartRef = ref<HTMLElement>()
-const departureTrendChartRef = ref<HTMLElement>()
-
-let employeeStats: EmployeeStatisticsVO | null = null
 
 onMounted(async () => {
   await loadData()
-  initCharts()
 })
 
 const loadData = async () => {
   try {
-    employeeStats = await statisticsApi.getEmployeeStatistics()
+    console.log('开始获取员工统计数据...')
+    const response = await statisticsApi.getEmployeeStatistics()
+    console.log('获取到的员工统计数据:', response)
+    
+    // 更新图表数据
+    updateCharts(response)
   } catch (error) {
     console.error('加载员工统计数据失败:', error)
     // 使用模拟数据
-    employeeStats = {
-      employeeTypeDistribution: {
-        formal: 120,
-        temporary: 15,
-        intern: 7
+    const mockData: EmployeeStatisticsVO = {
+      workerType: {
+        permanent: 22,
+        temporary: 1,
+        intern: 2
       },
-      educationDistribution: {
-        bachelorAbove: 45,
-        bachelor: 60,
-        college: 30,
-        highSchool: 15,
-        belowHighSchool: 6
+      workerGender: {
+        male: 14,
+        female: 11
       },
-      genderDistribution: {
-        male: 85,
-        female: 57
+      workerAge: {
+        young: 23,
+        middle: 2,
+        old: 0
       },
-      ageDistribution: {
-        under25: 25,
-        age25to30: 45,
-        age30to40: 50,
-        age40to50: 20,
-        above50: 2
-      },
-      onboardingTrend: [
-        { month: '2024-01', count: 8 },
-        { month: '2024-02', count: 12 },
-        { month: '2024-03', count: 15 },
-        { month: '2024-04', count: 10 },
-        { month: '2024-05', count: 18 },
-        { month: '2024-06', count: 22 },
-        { month: '2024-07', count: 16 },
-        { month: '2024-08', count: 20 },
-        { month: '2024-09', count: 14 },
-        { month: '2024-10', count: 11 },
-        { month: '2024-11', count: 9 },
-        { month: '2024-12', count: 13 }
-      ],
-      departureTrend: [
-        { month: '2024-01', count: 3 },
-        { month: '2024-02', count: 5 },
-        { month: '2024-03', count: 7 },
-        { month: '2024-04', count: 4 },
-        { month: '2024-05', count: 6 },
-        { month: '2024-06', count: 8 },
-        { month: '2024-07', count: 5 },
-        { month: '2024-08', count: 9 },
-        { month: '2024-09', count: 4 },
-        { month: '2024-10', count: 3 },
-        { month: '2024-11', count: 2 },
-        { month: '2024-12', count: 4 }
+      departmentWorkers: [
+        { departmentName: "公司总部", workerAmount: 0 },
+        { departmentName: "技术中心", workerAmount: 1 },
+        { departmentName: "产品中心", workerAmount: 0 },
+        { departmentName: "市场与销售中心", workerAmount: 0 },
+        { departmentName: "职能中心", workerAmount: 0 },
+        { departmentName: "研发部", workerAmount: 6 },
+        { departmentName: "测试部", workerAmount: 2 },
+        { departmentName: "运维部", workerAmount: 1 },
+        { departmentName: "产品设计部", workerAmount: 4 },
+        { departmentName: "用户体验部", workerAmount: 1 },
+        { departmentName: "市场部", workerAmount: 2 },
+        { departmentName: "销售部", workerAmount: 3 },
+        { departmentName: "人力资源部", workerAmount: 2 },
+        { departmentName: "财务部", workerAmount: 1 },
+        { departmentName: "行政部", workerAmount: 2 },
+        { departmentName: "宣传分部1", workerAmount: 0 }
       ]
     }
+    
+    console.log('使用模拟数据更新图表:', mockData)
+    updateCharts(mockData)
   }
 }
 
-const initCharts = () => {
-  if (!employeeStats) return
-  
-  // 员工类型分布饼图
+// 更新图表数据
+const updateCharts = (employeeData: EmployeeStatisticsVO) => {
+  // 1. 员工类型分布 - 环形饼图
   if (employeeTypeChartRef.value) {
     const chart = echarts.init(employeeTypeChartRef.value)
     const option = {
       tooltip: {
         trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
+        formatter: '{a} <br/>{b}: {c}人 ({d}%)'
       },
       legend: {
         orient: 'vertical',
-        left: 'left'
+        left: 'left',
+        top: 'center'
       },
       series: [
         {
           name: '员工类型',
           type: 'pie',
-          radius: '50%',
+          radius: ['40%', '70%'], // 环形图
+          center: ['60%', '50%'],
+          avoidLabelOverlap: false,
           data: [
-            { value: employeeStats.employeeTypeDistribution.formal, name: '正式工' },
-            { value: employeeStats.employeeTypeDistribution.temporary, name: '临时工' },
-            { value: employeeStats.employeeTypeDistribution.intern, name: '实习生' }
+            { value: employeeData.workerType.permanent, name: '正式工', itemStyle: { color: '#409eff' } },
+            { value: employeeData.workerType.temporary, name: '临时工', itemStyle: { color: '#67c23a' } },
+            { value: employeeData.workerType.intern, name: '实习生', itemStyle: { color: '#e6a23c' } }
+          ],
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          labelLine: {
+            show: false
+          }
+        }
+      ]
+    }
+    chart.setOption(option)
+  }
+  
+  // 2. 性别分布 - 玫瑰图
+  if (genderChartRef.value) {
+    const chart = echarts.init(genderChartRef.value)
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{a} <br/>{b}: {c}人 ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left',
+        top: 'center'
+      },
+      series: [
+        {
+          name: '性别分布',
+          type: 'pie',
+          radius: [20, 110],
+          center: ['60%', '50%'],
+          roseType: 'radius', // 玫瑰图
+          data: [
+            { value: employeeData.workerGender.male, name: '男性', itemStyle: { color: '#409eff' } },
+            { value: employeeData.workerGender.female, name: '女性', itemStyle: { color: '#f56c6c' } }
           ],
           emphasis: {
             itemStyle: {
@@ -213,67 +204,7 @@ const initCharts = () => {
     chart.setOption(option)
   }
   
-  // 学历分布柱状图
-  if (educationChartRef.value) {
-    const chart = echarts.init(educationChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: ['本科以上', '本科', '大专', '高中', '初中及以下']
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '人数',
-          type: 'bar',
-          data: [
-            employeeStats.educationDistribution.bachelorAbove,
-            employeeStats.educationDistribution.bachelor,
-            employeeStats.educationDistribution.college,
-            employeeStats.educationDistribution.highSchool,
-            employeeStats.educationDistribution.belowHighSchool
-          ],
-          itemStyle: {
-            color: '#409eff'
-          }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 性别分布饼图
-  if (genderChartRef.value) {
-    const chart = echarts.init(genderChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
-      },
-      series: [
-        {
-          name: '性别分布',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          data: [
-            { value: employeeStats.genderDistribution.male, name: '男' },
-            { value: employeeStats.genderDistribution.female, name: '女' }
-          ]
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 年龄分布柱状图
+  // 3. 年龄分布 - 柱状图
   if (ageChartRef.value) {
     const chart = echarts.init(ageChartRef.value)
     const option = {
@@ -281,28 +212,41 @@ const initCharts = () => {
         trigger: 'axis',
         axisPointer: {
           type: 'shadow'
-        }
+        },
+        formatter: '{b}: {c}人'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
       },
       xAxis: {
         type: 'category',
-        data: ['25岁以下', '25-30岁', '30-40岁', '40-50岁', '50岁以上']
+        data: ['35岁以下', '35-50岁', '50岁以上'],
+        axisTick: {
+          alignWithLabel: true
+        }
       },
       yAxis: {
-        type: 'value'
+        type: 'value',
+        name: '人数'
       },
       series: [
         {
-          name: '人数',
+          name: '年龄分布',
           type: 'bar',
           data: [
-            employeeStats.ageDistribution.under25,
-            employeeStats.ageDistribution.age25to30,
-            employeeStats.ageDistribution.age30to40,
-            employeeStats.ageDistribution.age40to50,
-            employeeStats.ageDistribution.above50
+            { value: employeeData.workerAge.young, itemStyle: { color: '#67c23a' } },
+            { value: employeeData.workerAge.middle, itemStyle: { color: '#e6a23c' } },
+            { value: employeeData.workerAge.old, itemStyle: { color: '#f56c6c' } }
           ],
-          itemStyle: {
-            color: '#67c23a'
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
           }
         }
       ]
@@ -310,84 +254,63 @@ const initCharts = () => {
     chart.setOption(option)
   }
   
-  // 部门分布饼图
+  // 4. 部门分布 - 横向柱状图
   if (departmentChartRef.value) {
     const chart = echarts.init(departmentChartRef.value)
+    
+    // 过滤掉员工数量为0的部门，并按数量排序
+    const departmentData = employeeData.departmentWorkers
+      .filter(dept => dept.workerAmount > 0)
+      .sort((a, b) => b.workerAmount - a.workerAmount)
+      .slice(0, 10) // 只显示前10个部门
+    
     const option = {
       tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: '{b}: {c}人'
       },
-      series: [
-        {
-          name: '部门分布',
-          type: 'pie',
-          radius: '50%',
-          data: [
-            { value: 45, name: '技术部' },
-            { value: 28, name: '市场部' },
-            { value: 15, name: '人事部' },
-            { value: 12, name: '财务部' },
-            { value: 25, name: '运营部' },
-            { value: 18, name: '客服部' }
-          ]
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 入职趋势折线图
-  if (onboardingTrendChartRef.value) {
-    const chart = echarts.init(onboardingTrendChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis'
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
       },
       xAxis: {
-        type: 'category',
-        data: employeeStats.onboardingTrend.map(item => item.month)
+        type: 'value',
+        name: '人数'
       },
       yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '入职人数',
-          type: 'line',
-          data: employeeStats.onboardingTrend.map(item => item.count),
-          smooth: true,
-          itemStyle: {
-            color: '#409eff'
+        type: 'category',
+        data: departmentData.map(dept => dept.departmentName),
+        axisLabel: {
+          interval: 0,
+          formatter: function(value: string) {
+            return value.length > 6 ? value.substring(0, 6) + '...' : value
           }
         }
-      ]
-    }
-    chart.setOption(option)
-  }
-  
-  // 离职趋势折线图
-  if (departureTrendChartRef.value) {
-    const chart = echarts.init(departureTrendChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'axis'
-      },
-      xAxis: {
-        type: 'category',
-        data: employeeStats.departureTrend.map(item => item.month)
-      },
-      yAxis: {
-        type: 'value'
       },
       series: [
         {
-          name: '离职人数',
-          type: 'line',
-          data: employeeStats.departureTrend.map(item => item.count),
-          smooth: true,
-          itemStyle: {
-            color: '#f56c6c'
+          name: '部门员工数',
+          type: 'bar',
+          data: departmentData.map(dept => ({
+            value: dept.workerAmount,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#409eff' },
+                { offset: 1, color: '#67c23a' }
+              ])
+            }
+          })),
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
           }
         }
       ]
