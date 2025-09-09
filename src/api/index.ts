@@ -7,6 +7,7 @@ import type {
   Department, 
   Lesson, 
   Salary, 
+  SalaryReviseVO,
   User, 
   Log, 
   Payment,
@@ -18,7 +19,8 @@ import type {
   SalaryQueryParams,
   TraineeQueryParams,
   LogQueryParams,
-  PaymentQueryParams
+  PaymentQueryParams,
+  OverviewData
 } from '@/types'
 
 // 创建axios实例
@@ -135,6 +137,16 @@ export const workerApi = {
   // 导出员工信息
   exportExcel: (): Promise<ApiResponse> => {
     return api.get('/user/worker/getExcelTable')
+  },
+  
+  // 获取所有员工
+  getAll: (): Promise<ApiResponse<Worker[]>> => {
+    return api.get('/user/worker/getAll')
+  },
+  
+  // 获取员工薪资回显数据
+  getReviseVO: (id: number): Promise<ApiResponse<SalaryReviseVO>> => {
+    return api.get(`/user/salary/getAddVO/${id}`)
   }
 }
 
@@ -340,6 +352,14 @@ export const departmentApi = {
   // 获取所有部门
   getAll: (): Promise<ApiResponse<Department[]>> => {
     return api.get('/user/statistic/getAllDept')
+  }
+}
+
+// 数据统计API
+export const statisticsApi = {
+  // 获取数据总览
+  getOverviewData: (): Promise<ApiResponse<OverviewData>> => {
+    return api.get('/user/statistic/getOverviewData')
   }
 }
 

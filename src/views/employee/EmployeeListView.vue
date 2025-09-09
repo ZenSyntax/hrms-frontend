@@ -466,11 +466,16 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Search, Plus, Delete, Download, Refresh } from '@element-plus/icons-vue'
 import { workerApi, jobApi, departmentApi } from '@/api'
+import { useDataRefreshStore } from '@/stores'
+import { exportWorkersWithDetailsToExcel } from '@/utils/excel'
 import type { Worker, WorkerQueryParams, Job, Department } from '@/types'
 
 const loading = ref(false)
 const tableData = ref<Worker[]>([])
 const selectedRows = ref<Worker[]>([])
+
+// 获取数据刷新store
+const dataRefreshStore = useDataRefreshStore()
 
 // 部门和岗位列表
 const departmentList = ref<Department[]>([])
@@ -744,6 +749,8 @@ const handleAddSubmit = async () => {
       showAddDialog.value = false
       resetAddForm()
       fetchData()
+      // 触发数据刷新事件，通知统计页面更新数据
+      dataRefreshStore.triggerRefresh()
     } else {
       ElMessage.error(response.message || '添加员工失败')
     }
@@ -799,6 +806,8 @@ const handleEditSubmit = async () => {
       showEditDialog.value = false
       resetEditForm()
       fetchData()
+      // 触发数据刷新事件，通知统计页面更新数据
+      dataRefreshStore.triggerRefresh()
     } else {
       ElMessage.error(response.message || '修改员工失败')
     }
@@ -857,6 +866,8 @@ const handleDelete = async (row: Worker) => {
     if (response.code === 0) {
       ElMessage.success('删除成功')
       fetchData()
+      // 触发数据刷新事件，通知统计页面更新数据
+      dataRefreshStore.triggerRefresh()
     } else {
       ElMessage.error(response.message || '删除失败')
     }
@@ -882,6 +893,8 @@ const handleBatchDelete = async () => {
     if (response.code === 0) {
       ElMessage.success('批量删除成功')
       fetchData()
+      // 触发数据刷新事件，通知统计页面更新数据
+      dataRefreshStore.triggerRefresh()
     } else {
       ElMessage.error(response.message || '批量删除失败')
     }
@@ -896,11 +909,36 @@ const handleBatchDelete = async () => {
 // 导出Excel
 const handleExport = async () => {
   try {
-    const response = await workerApi.exportExcel()
-    if (response.code === 0) {
-      ElMessage.success('导出成功')
+    // 检查是否有数据
+    if (!tableData.value || tableData.value.length === 0) {
+      ElMessage.warning('暂无数据可导出')
+      return
+    }
+
+    // 创建部门映射
+    const departmentMap = new Map<number, string>()
+    departmentList.value.forEach(dept => {
+      departmentMap.set(dept.id, dept.name)
+    })
+
+    // 创建岗位映射
+    const jobMap = new Map<number, string>()
+    jobList.value.forEach(job => {
+      jobMap.set(job.id, job.name)
+    })
+
+    // 导出Excel
+    const result = exportWorkersWithDetailsToExcel(
+      tableData.value,
+      departmentMap,
+      jobMap,
+      '员工列表'
+    )
+
+    if (result.success) {
+      ElMessage.success(`导出成功，文件名：${result.filename}`)
     } else {
-      ElMessage.error(response.message || '导出失败')
+      ElMessage.error(result.error || '导出失败')
     }
   } catch (error) {
     console.error('导出失败:', error)

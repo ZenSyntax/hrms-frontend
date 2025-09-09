@@ -84,6 +84,12 @@ export interface Salary {
   salary: number
 }
 
+// 薪资回显数据
+export interface SalaryReviseVO {
+  jobName: string
+  baseSalary: number
+}
+
 // 用户信息
 export interface User {
   id: number
@@ -170,4 +176,24 @@ export interface LogQueryParams extends PageParams {
 export interface PaymentQueryParams extends PageParams {
   id?: number
   name?: string
+}
+
+// 数据总览相关类型
+export interface OverviewData {
+  panelData: {
+    workerAmount: number      // 员工总数
+    employedAmount: number    // 在职员工数
+    jobAmount: number         // 岗位数量
+    departmentAmount: number  // 部门数量
+    workerChange: number      // 本月员工总数较上月的变化
+  }
+  workerGrowthTrend: number[][]  // 员工增长趋势 [入职人数, 离职人数]
+  salaryDistribution: {
+    more: number    // 20000以上
+    high: number    // 12000-20000
+    middle: number  // 8000-12000
+    low: number     // 5000-8000
+    few: number     // 5000以下
+  }
+  incomeExpenseTrend: number[][]  // 收支趋势 [收入, 支出]
 }

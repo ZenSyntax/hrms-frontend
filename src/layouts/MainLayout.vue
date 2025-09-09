@@ -19,7 +19,7 @@
         <el-sub-menu index="home">
           <template #title>
             <el-icon><House /></el-icon>
-            <span>数据看板</span>
+            <span>统计面板</span>
           </template>
           <el-menu-item index="/statistics/overview">
             <el-icon><TrendCharts /></el-icon>
@@ -191,7 +191,7 @@ const breadcrumbs = computed(() => {
   // 处理home页面 - 点击logo访问
   if (pathArray.length === 1 && pathArray[0] === 'home') {
     return [{
-      name: '数据看板',
+      name: '统计面板',
       path: '/home'
     }]
   }
@@ -205,7 +205,7 @@ const breadcrumbs = computed(() => {
     }
     return [
       {
-        name: '数据看板',
+        name: '统计面板',
         path: '#'
       },
       {
@@ -299,7 +299,7 @@ const breadcrumbs = computed(() => {
   
   // 默认处理 - 使用路径映射显示中文名称
   const pathNameMap: Record<string, string> = {
-    'statistics': '数据看板',
+    'statistics': '统计面板',
     'overview': '总览统计',
     'employee': '员工统计',
     'salary': '薪资统计',

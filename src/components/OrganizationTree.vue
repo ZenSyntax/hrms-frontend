@@ -112,21 +112,6 @@
       </svg>
     </div>
     
-    <!-- 控制面板 -->
-    <div class="tree-controls">
-      <button @click="expandAll" class="control-btn expand-all">
-        <i class="icon">📂</i>
-        展开全部
-      </button>
-      <button @click="collapseAll" class="control-btn collapse-all">
-        <i class="icon">📁</i>
-        折叠全部
-      </button>
-      <button @click="resetView" class="control-btn reset-view">
-        <i class="icon">🎯</i>
-        重置视图
-      </button>
-    </div>
   </div>
 </template>
 
@@ -350,9 +335,9 @@ const calculateConnections = (node: TreeNode): Connection[] => {
 }
 
 // 更新树状图
-const updateTree = () => {
-  // 如果有现有的节点，先保存它们的展开状态
-  if (flattenedNodes.value.length > 0) {
+const updateTree = (skipSaveStates: boolean = false) => {
+  // 如果有现有的节点且不是跳过保存状态，先保存它们的展开状态
+  if (!skipSaveStates && flattenedNodes.value.length > 0) {
     const rootNode = flattenedNodes.value.find(node => node.level === 0)
     if (rootNode) {
       saveExpandedStates(rootNode)
@@ -378,15 +363,8 @@ const updateTree = () => {
 // 事件处理
 const handleNodeClick = (node: TreeNode) => {
   if (node.children && node.children.length > 0) {
-    // 更新节点的展开状态
+    // 直接切换节点的展开状态
     node.expanded = !node.expanded
-    
-    // 保存当前所有节点的展开状态
-    const rootNode = flattenedNodes.value.find(n => n.level === 0)
-    if (rootNode) {
-      saveExpandedStates(rootNode)
-    }
-    
     // 重新计算布局
     updateTree()
   }
@@ -457,31 +435,37 @@ const handleMouseUp = () => {
 
 // 控制方法
 const expandAll = () => {
-  const expandNode = (node: TreeNode) => {
-    node.expanded = true
-    if (node.children) {
-      node.children.forEach(expandNode)
+  // 展开全部：遍历树，将所有有子节点的节点都展开
+  const expandNode = (node: TreeNode, level: number = 0) => {
+    if (node.children && node.children.length > 0) {
+      const nodeKey = `${node.id || node.name}_${level}`
+      expandedStates.value.set(nodeKey, true)
+      node.children.forEach(child => expandNode(child, level + 1))
     }
   }
   expandNode(props.data)
-  updateTree()
+  updateTree(true) // 跳过保存状态，直接使用我们设置的状态
 }
 
 const collapseAll = () => {
-  const collapseNode = (node: TreeNode) => {
-    node.expanded = false
-    if (node.children) {
-      node.children.forEach(collapseNode)
+  // 折叠全部：遍历树，将所有有子节点的节点都折叠
+  const collapseNode = (node: TreeNode, level: number = 0) => {
+    if (node.children && node.children.length > 0) {
+      const nodeKey = `${node.id || node.name}_${level}`
+      expandedStates.value.set(nodeKey, false)
+      node.children.forEach(child => collapseNode(child, level + 1))
     }
   }
   collapseNode(props.data)
-  updateTree()
+  updateTree(true) // 跳过保存状态，直接使用我们设置的状态
 }
 
 const resetView = () => {
+  // 重置视图：展开前两级，重置缩放和平移
   const resetNode = (node: TreeNode, level: number = 0) => {
-    node.expanded = level < 2
-    if (node.children) {
+    if (node.children && node.children.length > 0) {
+      const nodeKey = `${node.id || node.name}_${level}`
+      expandedStates.value.set(nodeKey, level < 2)
       node.children.forEach(child => resetNode(child, level + 1))
     }
   }
@@ -492,8 +476,15 @@ const resetView = () => {
   panX.value = 0
   panY.value = 0
   
-  updateTree()
+  updateTree(true) // 跳过保存状态，直接使用我们设置的状态
 }
+
+// 暴露方法给父组件
+defineExpose({
+  expandAll,
+  collapseAll,
+  resetView
+})
 
 // 监听数据变化
 watch(() => props.data, updateTree, { deep: true })
@@ -524,7 +515,7 @@ onMounted(() => {
 
 .tree-container {
   width: 100%;
-  height: calc(100% - 60px);
+  height: 100%;
   overflow: auto;
   position: relative;
 }
@@ -601,78 +592,11 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-/* 控制面板 */
-.tree-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 10;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.control-btn:hover {
-  background: rgba(255, 255, 255, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.control-btn .icon {
-  font-size: 14px;
-}
-
-.expand-all:hover {
-  background: #4A90E2;
-  color: white;
-  border-color: #4A90E2;
-}
-
-.collapse-all:hover {
-  background: #7ED321;
-  color: white;
-  border-color: #7ED321;
-}
-
-.reset-view:hover {
-  background: #F5A623;
-  color: white;
-  border-color: #F5A623;
-}
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .tree-controls {
-    position: static;
-    justify-content: center;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 0 0 12px 12px;
-  }
-  
-  .control-btn {
-    flex: 1;
-    justify-content: center;
-  }
-  
   .tree-container {
-    height: calc(100% - 80px);
+    height: 100%;
   }
 }
 </style>

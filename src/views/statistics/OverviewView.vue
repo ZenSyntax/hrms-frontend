@@ -1,430 +1,596 @@
 <template>
-  <div class="statistics-overview">
-    <el-row :gutter="20">
-      <!-- 关键指标卡片 -->
-      <el-col :span="6" v-for="card in overviewCards" :key="card.title">
-        <el-card class="overview-card">
-          <div class="card-content">
-            <div class="card-icon" :style="{ backgroundColor: card.color }">
-              <el-icon :size="24">
-                <component :is="card.icon" />
-              </el-icon>
+  <div class="overview-container">
+
+    <!-- 数据面板 -->
+    <div class="data-panels">
+      <div class="panel-item">
+        <div class="panel-icon employee">
+          <el-icon><User /></el-icon>
             </div>
-            <div class="card-info">
-              <div class="card-value">{{ card.value }}</div>
-              <div class="card-title">{{ card.title }}</div>
-              <!-- 只有员工总数显示变化趋势，其他卡片显示占位元素保持高度一致 -->
-              <div v-if="card.title === '员工总数'" class="card-trend" :class="card.change > 0 ? 'positive' : 'negative'">
-                <el-icon><component :is="card.change > 0 ? 'TrendCharts' : 'Bottom'" /></el-icon>
-                {{ card.change > 0 ? '+' : '' }}{{ card.change }}
+        <div class="panel-content">
+          <div class="panel-title">员工总数</div>
+          <div class="panel-value">{{ overviewData.panelData.workerAmount }}</div>
+          <div class="panel-change" :class="{ positive: overviewData.panelData.workerChange > 0, negative: overviewData.panelData.workerChange < 0 }">
+            <el-icon v-if="overviewData.panelData.workerChange > 0"><ArrowUp /></el-icon>
+            <el-icon v-else-if="overviewData.panelData.workerChange < 0"><ArrowDown /></el-icon>
+            <span>{{ Math.abs(overviewData.panelData.workerChange) }}</span>
               </div>
-              <div v-else class="card-trend-placeholder"></div>
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-row :gutter="20" style="margin-top: 20px;">
+
+      <div class="panel-item">
+        <div class="panel-icon employed">
+          <el-icon><UserFilled /></el-icon>
+        </div>
+        <div class="panel-content">
+          <div class="panel-title">在职员工</div>
+          <div class="panel-value">{{ overviewData.panelData.employedAmount }}</div>
+          <div class="panel-subtitle">当前在职</div>
+        </div>
+      </div>
+
+      <div class="panel-item">
+        <div class="panel-icon job">
+          <el-icon><Briefcase /></el-icon>
+        </div>
+        <div class="panel-content">
+          <div class="panel-title">岗位数量</div>
+          <div class="panel-value">{{ overviewData.panelData.jobAmount }}</div>
+          <div class="panel-subtitle">个岗位</div>
+        </div>
+      </div>
+
+      <div class="panel-item">
+        <div class="panel-icon department">
+          <el-icon><OfficeBuilding /></el-icon>
+        </div>
+        <div class="panel-content">
+          <div class="panel-title">部门数量</div>
+          <div class="panel-value">{{ overviewData.panelData.departmentAmount }}</div>
+          <div class="panel-subtitle">个部门</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="charts-container">
       <!-- 员工增长趋势 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>员工增长趋势</span>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>员工增长趋势</h3>
+          <p>近12个月入职与离职对比</p>
             </div>
-          </template>
-          <div ref="employeeGrowthChartRef" style="height: 350px;"></div>
-        </el-card>
-      </el-col>
+        <div class="chart-content">
+          <div ref="workerGrowthChart" class="chart"></div>
+        </div>
+      </div>
       
       <!-- 薪资分布 -->
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>薪资分布</span>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>薪资分布</h3>
+          <p>员工薪资水平分布情况</p>
             </div>
-          </template>
-          <div ref="salaryDistributionChartRef" style="height: 350px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    
-    <el-row :gutter="20" style="margin-top: 20px;">
+        <div class="chart-content">
+          <div ref="salaryChart" class="chart"></div>
+        </div>
+      </div>
+
       <!-- 收支趋势 -->
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>收支趋势</span>
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h3>收支趋势</h3>
+          <p>近12个月收入与支出对比</p>
             </div>
-          </template>
-          <div ref="paymentTrendChartRef" style="height: 400px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+        <div class="chart-content">
+          <div ref="incomeExpenseChart" class="chart"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { User, UserFilled, Briefcase, OfficeBuilding, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { statisticsApi } from '@/api/statistics'
-import { 
-  User, 
-  Briefcase, 
-  OfficeBuilding
-} from '@element-plus/icons-vue'
+import { statisticsApi } from '@/api'
+import type { OverviewData } from '@/types'
 
-const employeeGrowthChartRef = ref<HTMLElement>()
-const salaryDistributionChartRef = ref<HTMLElement>()
-const paymentTrendChartRef = ref<HTMLElement>()
-
-const overviewCards = ref([
-  {
-    title: '员工总数',
-    value: 0,
-    icon: User,
-    color: '#409eff',
-    change: 0
+// 响应式数据
+const overviewData = ref<OverviewData>({
+  panelData: {
+    workerAmount: 0,
+    employedAmount: 0,
+    jobAmount: 0,
+    departmentAmount: 0,
+    workerChange: 0
   },
-  {
-    title: '在职员工',
-    value: 0,
-    icon: User,
-    color: '#67c23a',
-    change: 0
-  },
-  {
-    title: '岗位数量',
-    value: 0,
-    icon: Briefcase,
-    color: '#e6a23c',
-    change: 0
-  },
-  {
-    title: '部门数量',
-    value: 0,
-    icon: OfficeBuilding,
-    color: '#f56c6c',
-    change: 0
-  }
-])
-
-onMounted(async () => {
-  await loadData()
-  initCharts()
+  workerGrowthTrend: [],
+      salaryDistribution: {
+        more: 0,
+        high: 0,
+        middle: 0,
+        low: 0,
+        few: 0
+      },
+  incomeExpenseTrend: []
 })
 
-const loadData = async () => {
+// 图表引用
+const workerGrowthChart = ref<HTMLElement>()
+const salaryChart = ref<HTMLElement>()
+const incomeExpenseChart = ref<HTMLElement>()
+
+// 图表实例
+let workerGrowthChartInstance: echarts.ECharts | null = null
+let salaryChartInstance: echarts.ECharts | null = null
+let incomeExpenseChartInstance: echarts.ECharts | null = null
+
+// 获取数据总览
+const fetchOverviewData = async () => {
   try {
-    console.log('开始获取总览数据...')
-    const overviewData = await statisticsApi.getOverview()
-    console.log('获取到的总览数据:', overviewData)
-    
-    // 更新卡片数据
-    if (overviewData && overviewData.panelData) {
-      console.log('更新卡片数据:', overviewData.panelData)
-      overviewCards.value[0].value = overviewData.panelData.workerAmount
-      overviewCards.value[0].change = overviewData.panelData.workerChange
-      overviewCards.value[1].value = overviewData.panelData.employedAmount
-      overviewCards.value[2].value = overviewData.panelData.jobAmount
-      overviewCards.value[3].value = overviewData.panelData.departmentAmount
-      console.log('卡片数据更新完成:', overviewCards.value)
-    } else {
-      console.warn('总览数据格式不正确:', overviewData)
-    }
-    
-    // 更新图表数据
-    updateCharts(overviewData)
-  } catch (error) {
-    console.error('加载总览数据失败:', error)
-    // 使用模拟数据
-    const mockData = {
-      panelData: {
-        workerAmount: 25,
-        employedAmount: 22,
-        jobAmount: 19,
-        departmentAmount: 16,
-        workerChange: 1
-      },
-      workerGrowthTrend: [
-        [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [24, 2], [1, 1]
-      ],
-      salaryDistribution: {
-        more: 5,
-        high: 9,
-        middle: 4,
-        low: 4,
-        few: 3
-      },
-      incomeExpenseTrend: [
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [472711.5, 652700.0], [94764.0, 242500.0]
-      ]
-    }
-    
-    // 使用模拟数据更新卡片
-    console.log('使用模拟数据更新卡片:', mockData.panelData)
-    overviewCards.value[0].value = mockData.panelData.workerAmount
-    overviewCards.value[0].change = mockData.panelData.workerChange
-    overviewCards.value[1].value = mockData.panelData.employedAmount
-    overviewCards.value[1].change = 0 // 在职员工变化暂时设为0，因为接口没有提供
-    overviewCards.value[2].value = mockData.panelData.jobAmount
-    overviewCards.value[2].change = 0 // 岗位数量变化暂时设为0，因为接口没有提供
-    overviewCards.value[3].value = mockData.panelData.departmentAmount
-    overviewCards.value[3].change = 0 // 部门数量变化暂时设为0，因为接口没有提供
-    console.log('模拟数据卡片更新完成:', overviewCards.value)
-    
-    // 使用模拟数据更新图表
-    updateCharts(mockData)
+    const response = await statisticsApi.getOverviewData()
+    if (response.code === 0) {
+      overviewData.value = response.data
+      // 数据加载完成后初始化图表
+      await nextTick()
+      initCharts()
+      } else {
+      ElMessage.error(response.message || '获取数据失败')
+      }
+    } catch (error) {
+    console.error('获取数据总览失败:', error)
+    ElMessage.error('获取数据失败，请稍后重试')
   }
 }
 
-// 更新图表数据
-const updateCharts = (overviewData: any) => {
-  // 员工增长趋势
-  if (employeeGrowthChartRef.value) {
-    const chart = echarts.init(employeeGrowthChartRef.value)
-    
-    // 处理员工增长趋势数据
-    const onboardingData = overviewData.workerGrowthTrend.map((item: number[]) => item[0])
-    const departureData = overviewData.workerGrowthTrend.map((item: number[]) => item[1])
-    const netGrowthData = overviewData.workerGrowthTrend.map((item: number[]) => item[0] - item[1])
-    
-    const option = {
-      tooltip: {
-        trigger: 'axis'
-      },
-      legend: {
-        data: ['入职人数', '离职人数', '净增长']
-      },
-      xAxis: {
-        type: 'category',
-        data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: '入职人数',
-          type: 'line',
-          data: onboardingData,
-          smooth: true,
-          itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '离职人数',
-          type: 'line',
-          data: departureData,
-          smooth: true,
-          itemStyle: { color: '#f56c6c' }
-        },
-        {
-          name: '净增长',
-          type: 'bar',
-          data: netGrowthData,
-          itemStyle: { color: '#409eff' }
-        }
-      ]
-    }
-    chart.setOption(option)
+// 初始化员工增长趋势图表
+const initWorkerGrowthChart = () => {
+  if (!workerGrowthChart.value) return
+  
+  workerGrowthChartInstance = echarts.init(workerGrowthChart.value)
+  
+  // 生成月份标签（最近12个月）
+  const months = []
+  const currentDate = new Date()
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+    months.push(date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit' }))
   }
   
-  // 薪资分布
-  if (salaryDistributionChartRef.value) {
-    const chart = echarts.init(salaryDistributionChartRef.value)
-    const option = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left'
-      },
-      series: [
-        {
-          name: '薪资分布',
-          type: 'pie',
-          radius: '50%',
-          data: [
-            { value: overviewData.salaryDistribution.few, name: '5000以下' },
-            { value: overviewData.salaryDistribution.low, name: '5000-8000' },
-            { value: overviewData.salaryDistribution.middle, name: '8000-12000' },
-            { value: overviewData.salaryDistribution.high, name: '12000-20000' },
-            { value: overviewData.salaryDistribution.more, name: '20000以上' }
-          ],
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
+  // 处理数据（从最早月份开始）
+  const joinData = overviewData.value.workerGrowthTrend.map(item => item[0])
+  const leaveData = overviewData.value.workerGrowthTrend.map(item => item[1])
+  // 计算净增长数据（入职人数 - 离职人数）
+  const netGrowthData = joinData.map((join, index) => join - leaveData[index])
   
-  // 收支趋势
-  if (paymentTrendChartRef.value) {
-    const chart = echarts.init(paymentTrendChartRef.value)
-    
-    // 处理收支趋势数据
-    const incomeData = overviewData.incomeExpenseTrend.map((item: number[]) => item[0])
-    const expenseData = overviewData.incomeExpenseTrend.map((item: number[]) => item[1])
-    const profitData = overviewData.incomeExpenseTrend.map((item: number[]) => item[0] - item[1])
-    
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        formatter: function(params: any) {
-          let result = params[0].name + '<br/>'
-          params.forEach((param: any) => {
-            if (param.seriesName === '收入' || param.seriesName === '支出') {
-              result += param.marker + param.seriesName + ': ' + (param.value / 10000).toFixed(2) + '万元<br/>'
-            } else {
-              result += param.marker + param.seriesName + ': ' + (param.value / 10000).toFixed(2) + '万元<br/>'
-            }
-          })
-          return result
-        }
-      },
-      legend: {
-        data: ['收入', '支出', '净利润']
-      },
-      xAxis: {
-        type: 'category',
-        data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-      },
-      yAxis: {
-        type: 'value',
-        name: '金额(万元)',
-        axisLabel: {
-          formatter: function(value: number) {
-            return (value / 10000).toFixed(0)
-          }
-        }
-      },
-      series: [
-        {
-          name: '收入',
-          type: 'line',
-          data: incomeData,
-          smooth: true,
-          itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '支出',
-          type: 'line',
-          data: expenseData,
-          smooth: true,
-          itemStyle: { color: '#f56c6c' }
-        },
-        {
-          name: '净利润',
-          type: 'bar',
-          data: profitData,
-          itemStyle: { color: '#409eff' }
-        }
-      ]
-    }
-    chart.setOption(option)
-  }
-}
-
-const initCharts = () => {
-  // 初始化图表（使用模拟数据）
-  const mockData = {
-    workerGrowthTrend: [
-      [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [24, 2], [1, 1]
-    ],
-    salaryDistribution: {
-      more: 5,
-      high: 9,
-      middle: 4,
-      low: 4,
-      few: 3
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      }
     },
-    incomeExpenseTrend: [
-      [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [472711.5, 652700.0], [94764.0, 242500.0]
+    legend: {
+      data: ['入职人数', '离职人数', '净增长', '入职趋势', '离职趋势']
+    },
+    xAxis: {
+      type: 'category',
+      data: months
+    },
+    yAxis: {
+      type: 'value',
+      name: '人数'
+    },
+    series: [
+      {
+        name: '入职人数',
+        type: 'bar',
+        data: joinData,
+        itemStyle: {
+          color: '#67C23A'
+        }
+      },
+      {
+        name: '离职人数',
+        type: 'bar',
+        data: leaveData,
+        itemStyle: { 
+          color: '#F56C6C'
+        }
+      },
+      {
+        name: '净增长',
+        type: 'bar',
+        data: netGrowthData,
+        itemStyle: {
+          color: '#409EFF'
+        }
+      },
+      {
+        name: '入职趋势',
+        type: 'line',
+        data: joinData,
+        smooth: true,
+        lineStyle: {
+          color: '#67C23A',
+          width: 3
+        },
+        itemStyle: {
+          color: '#67C23A'
+        },
+        symbol: 'circle',
+        symbolSize: 6
+      },
+      {
+        name: '离职趋势',
+        type: 'line',
+        data: leaveData,
+        smooth: true,
+        lineStyle: {
+          color: '#F56C6C',
+          width: 3
+        },
+        itemStyle: {
+          color: '#F56C6C'
+        },
+        symbol: 'circle',
+        symbolSize: 6
+      }
     ]
   }
-  updateCharts(mockData)
+  
+  workerGrowthChartInstance.setOption(option)
 }
+
+// 初始化薪资分布图表
+const initSalaryChart = () => {
+  if (!salaryChart.value) return
+  
+  salaryChartInstance = echarts.init(salaryChart.value)
+  
+  const data = [
+    { value: overviewData.value.salaryDistribution.more, name: '20000以上' },
+    { value: overviewData.value.salaryDistribution.high, name: '12000-20000' },
+    { value: overviewData.value.salaryDistribution.middle, name: '8000-12000' },
+    { value: overviewData.value.salaryDistribution.low, name: '5000-8000' },
+    { value: overviewData.value.salaryDistribution.few, name: '5000以下' }
+  ]
+  
+  const option = {
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          legend: {
+            orient: 'vertical',
+      left: 'left'
+          },
+          series: [
+            {
+              name: '薪资分布',
+              type: 'pie',
+        radius: '50%',
+        data: data,
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+        }
+      }
+    ]
+  }
+  
+  salaryChartInstance.setOption(option)
+}
+
+// 初始化收支趋势图表
+const initIncomeExpenseChart = () => {
+  if (!incomeExpenseChart.value) return
+  
+  incomeExpenseChartInstance = echarts.init(incomeExpenseChart.value)
+  
+  // 生成月份标签（最近12个月）
+  const months = []
+  const currentDate = new Date()
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
+    months.push(date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit' }))
+  }
+  
+  // 处理数据（从最早月份开始）
+  const incomeData = overviewData.value.incomeExpenseTrend.map(item => item[0])
+  const expenseData = overviewData.value.incomeExpenseTrend.map(item => item[1])
+  // 计算净利润数据（收入 - 支出）
+  const netProfitData = incomeData.map((income, index) => income - expenseData[index])
+  
+  const option = {
+          tooltip: {
+            trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      },
+      formatter: function (params: any) {
+              let result = params[0].name + '<br/>'
+              params.forEach((param: any) => {
+          result += param.seriesName + ': ¥' + param.value.toLocaleString() + '<br/>'
+              })
+              return result
+            }
+          },
+          legend: {
+      data: ['收入', '支出', '净利润']
+          },
+          xAxis: {
+            type: 'category',
+      data: months
+          },
+          yAxis: {
+            type: 'value',
+      name: '金额(元)',
+            axisLabel: { 
+        formatter: function (value: number) {
+          if (value >= 10000) {
+            return (value / 10000).toFixed(1) + '万'
+          }
+          return value.toLocaleString()
+        }
+      }
+          },
+          series: [
+            {
+              name: '收入',
+              type: 'line',
+              data: incomeData,
+              smooth: true,
+        itemStyle: {
+          color: '#67C23A'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [{
+              offset: 0, color: 'rgba(103, 194, 58, 0.3)'
+            }, {
+              offset: 1, color: 'rgba(103, 194, 58, 0.1)'
+            }]
+          }
+        }
+            },
+            {
+              name: '支出',
+              type: 'line',
+              data: expenseData,
+              smooth: true,
+              itemStyle: { 
+          color: '#F56C6C'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [{
+              offset: 0, color: 'rgba(245, 108, 108, 0.3)'
+            }, {
+              offset: 1, color: 'rgba(245, 108, 108, 0.1)'
+            }]
+          }
+        }
+            },
+            {
+              name: '净利润',
+              type: 'bar',
+              data: netProfitData,
+              itemStyle: {
+                color: '#409EFF'
+              }
+            }
+      ]
+  }
+  
+  incomeExpenseChartInstance.setOption(option)
+}
+
+// 初始化所有图表
+const initCharts = () => {
+  initWorkerGrowthChart()
+  initSalaryChart()
+  initIncomeExpenseChart()
+}
+
+// 窗口大小改变时重新调整图表
+const handleResize = () => {
+  workerGrowthChartInstance?.resize()
+  salaryChartInstance?.resize()
+  incomeExpenseChartInstance?.resize()
+}
+
+onMounted(() => {
+  fetchOverviewData()
+  window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载时清理
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  workerGrowthChartInstance?.dispose()
+  salaryChartInstance?.dispose()
+  incomeExpenseChartInstance?.dispose()
+})
 </script>
 
 <style scoped>
-.statistics-overview {
+.overview-container {
   padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
-.overview-card {
-  margin-bottom: 20px;
+
+/* 数据面板样式 */
+.data-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
-.card-content {
+.panel-item {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
+  transition: transform 0.2s ease;
 }
 
-.card-icon {
+.panel-item:hover {
+  transform: translateY(-2px);
+}
+
+.panel-icon {
   width: 60px;
   height: 60px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: 16px;
+  font-size: 24px;
   color: white;
-  margin-right: 15px;
 }
 
-.card-info {
+.panel-icon.employee {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.panel-icon.employed {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.panel-icon.job {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.panel-icon.department {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.panel-content {
   flex: 1;
 }
 
-.card-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
-}
-
-.card-title {
+.panel-title {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 5px;
+  color: #909399;
+  margin-bottom: 8px;
 }
 
-.card-trend {
-  font-size: 12px;
+.panel-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.panel-change {
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 20px; /* 设置固定高度 */
-  line-height: 20px; /* 确保行高与高度一致 */
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.card-trend.positive {
-  color: #67c23a;
+.panel-change.positive {
+  color: #67C23A;
 }
 
-.card-trend.negative {
-  color: #f56c6c;
+.panel-change.negative {
+  color: #F56C6C;
 }
 
-.card-trend-placeholder {
-  height: 20px; /* 与card-trend相同的高度 */
-  line-height: 20px; /* 确保行高与高度一致 */
+.panel-change .el-icon {
+  margin-right: 4px;
 }
 
-.card-header {
+.panel-subtitle {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 图表区域样式 */
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.chart-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.chart-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.chart-header h3 {
+  margin: 0 0 4px 0;
+  color: #303133;
   font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+}
+
+.chart-header p {
+  margin: 0;
+  color: #909399;
+  font-size: 12px;
+}
+
+.chart-content {
+  padding: 20px;
+}
+
+.chart {
+  width: 100%;
+  height: 300px;
+}
+
+.chart-card.full-width .chart {
+  height: 400px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .data-panels {
+    grid-template-columns: 1fr;
+  }
+  
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .overview-container {
+    padding: 16px;
+  }
 }
 </style>

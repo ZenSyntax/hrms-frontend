@@ -40,20 +40,27 @@
             <div class="chart-controls">
               <el-button 
                 type="primary" 
-                :icon="isExpanded ? 'ArrowUp' : 'ArrowDown'"
-                @click="toggleExpand"
+                icon="FolderOpened"
+                @click="expandAll"
                 size="small"
               >
-                {{ isExpanded ? '收起' : '展开' }}
+                展开全部
               </el-button>
               <el-button 
-                type="default" 
-                icon="Refresh"
-                @click="refreshChart"
+                type="success" 
+                icon="Folder"
+                @click="collapseAll"
                 size="small"
-                :loading="loading"
               >
-                刷新
+                折叠全部
+              </el-button>
+              <el-button 
+                type="warning" 
+                icon="RefreshRight"
+                @click="resetView"
+                size="small"
+              >
+                重置视图
               </el-button>
             </div>
           </div>
@@ -61,14 +68,11 @@
         
         <div class="chart-container" v-loading="loading">
           <OrganizationTree 
-            v-if="treeData"
+            ref="organizationTreeRef"
             :data="treeData"
             @node-click="onNodeClick"
             @node-hover="onNodeHover"
           />
-          <div v-else class="no-data">
-            <el-empty description="暂无部门数据" />
-          </div>
         </div>
       </el-card>
     </div>
@@ -88,7 +92,7 @@ import { useAuthStore } from '@/stores'
 const loading = ref(false)
 const departments = ref<Department[]>([])
 const supervisors = ref<Map<number, string>>(new Map())
-const isExpanded = ref(true)
+const organizationTreeRef = ref()
 
 // 获取auth store
 const authStore = useAuthStore()
@@ -112,7 +116,13 @@ const loginTime = computed(() => {
 // 树状图数据
 const treeData = computed(() => {
   if (departments.value.length === 0) {
-    return null
+    return {
+      id: '0',
+      name: '暂无数据',
+      level: 0,
+      expanded: true,
+      children: []
+    }
   }
   return buildTreeData()
 })
@@ -218,14 +228,26 @@ const fetchSupervisors = async () => {
   await Promise.all(promises)
 }
 
-// 切换展开/收起
-const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value
+
+// 展开全部
+const expandAll = () => {
+  if (organizationTreeRef.value) {
+    organizationTreeRef.value.expandAll()
+  }
 }
 
-// 刷新图表
-const refreshChart = () => {
-  fetchDepartments()
+// 折叠全部
+const collapseAll = () => {
+  if (organizationTreeRef.value) {
+    organizationTreeRef.value.collapseAll()
+  }
+}
+
+// 重置视图
+const resetView = () => {
+  if (organizationTreeRef.value) {
+    organizationTreeRef.value.resetView()
+  }
 }
 
 // 节点点击事件

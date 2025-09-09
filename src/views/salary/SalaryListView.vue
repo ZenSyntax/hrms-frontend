@@ -468,6 +468,21 @@ const fetchJobList = async () => {
   }
 }
 
+// 获取所有员工信息
+const fetchAllWorkers = async () => {
+  try {
+    const response = await workerApi.getAll()
+    if (response.code === 0) {
+      // 将员工信息存储到缓存中
+      response.data.forEach(worker => {
+        workerCache.value.set(worker.id, worker)
+      })
+    }
+  } catch (error) {
+    console.error('获取所有员工信息失败:', error)
+  }
+}
+
 // 获取员工信息
 const fetchWorkerInfo = async (workerId: number): Promise<Worker | null> => {
   if (workerCache.value.has(workerId)) {
@@ -590,9 +605,52 @@ const handleReset = () => {
 }
 
 // 员工变化
-const handleWorkerChange = (workerId: number) => {
-  // 根据员工获取岗位信息
+const handleWorkerChange = async (workerId: number) => {
+  console.log('=== 员工变化函数被调用 ===')
   console.log('选择员工:', workerId)
+  
+  try {
+    console.log('=== 开始调用API ===')
+    // 调用新的API获取员工薪资回显数据
+    const response = await workerApi.getReviseVO(workerId)
+    console.log('=== API响应 ===', response)
+    
+    if (response.code === 0 && response.data) {
+      const reviseData = response.data
+      
+      // 根据岗位名称找到对应的岗位ID
+      const job = jobList.value.find(j => j.name === reviseData.jobName)
+      if (job) {
+        addForm.jobId = job.id
+      }
+      
+      // 设置基础薪资
+      baseSalary.value = reviseData.baseSalary
+      
+      // 其他字段设置为默认值
+      addForm.settlementTime = ''
+      addForm.cycle = 1
+      addForm.salaryOffset = 0
+      
+      console.log('薪资回显数据:', reviseData)
+    } else {
+      console.error('获取薪资回显数据失败:', response.message)
+      // 设置默认值
+      addForm.jobId = 1
+      baseSalary.value = 5000
+      addForm.settlementTime = ''
+      addForm.cycle = 1
+      addForm.salaryOffset = 0
+    }
+  } catch (error) {
+    console.error('获取员工薪资回显数据失败:', error)
+    // 设置默认值
+    addForm.jobId = 1
+    baseSalary.value = 5000
+    addForm.settlementTime = ''
+    addForm.cycle = 1
+    addForm.salaryOffset = 0
+  }
 }
 
 // 岗位变化
@@ -754,6 +812,7 @@ const handleCurrentChange = (page: number) => {
 
 onMounted(async () => {
   await fetchJobList()
+  await fetchAllWorkers()
   await fetchData()
 })
 </script>

@@ -173,11 +173,15 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { workerApi, jobApi, departmentApi } from '@/api'
+import { useDataRefreshStore } from '@/stores'
 import type { Worker, Job, Department } from '@/types'
 
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+
+// 获取数据刷新store
+const dataRefreshStore = useDataRefreshStore()
 
 // 部门和岗位列表
 const departmentList = ref<Department[]>([])
@@ -243,6 +247,9 @@ const handleSubmit = async () => {
     const response = await workerApi.add(form)
     if (response.code === 0) {
       ElMessage.success('添加员工成功')
+      // 触发数据刷新事件，通知统计页面更新数据
+      console.log('员工添加页面 - 触发数据刷新事件')
+      dataRefreshStore.triggerRefresh()
       router.push('/employee/list')
     } else {
       ElMessage.error(response.message || '添加员工失败')

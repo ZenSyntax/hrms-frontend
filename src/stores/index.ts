@@ -100,3 +100,25 @@ export const useAppStore = defineStore('app', () => {
     setLoading
   }
 })
+
+// 数据刷新事件管理
+export const useDataRefreshStore = defineStore('dataRefresh', () => {
+  const refreshTrigger = ref(0)
+  
+  // 触发数据刷新
+  const triggerRefresh = () => {
+    refreshTrigger.value++
+    console.log('数据刷新事件已触发，当前计数:', refreshTrigger.value)
+  }
+  
+  // 获取当前刷新计数
+  const getRefreshCount = () => {
+    return refreshTrigger.value
+  }
+  
+  return {
+    refreshTrigger,
+    triggerRefresh,
+    getRefreshCount
+  }
+})
