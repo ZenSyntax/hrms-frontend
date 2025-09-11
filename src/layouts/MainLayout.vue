@@ -6,7 +6,7 @@
       :class="['sidebar', { 'show': !sidebarCollapsed && isMobile }]"
     >
       <div class="logo" @click="goToHome">
-        <h2 v-if="!sidebarCollapsed">HRMS</h2>
+        <h2 v-if="!sidebarCollapsed">HRMS-HR工作台</h2>
         <h2 v-else>H</h2>
       </div>
       <el-menu
@@ -357,7 +357,7 @@ const handleCommand = (command: string) => {
   align-items: center;
   justify-content: center;
   background-color: #3A4148;
-  color: #FFCA42;
+  color: #ffffff;
   cursor: pointer;
   transition: background-color 0.3s;
 }
